@@ -1,7 +1,7 @@
-# Mantenimiento de puntapie-inicial y puntapie-ejemplo-noticias
+# Mantenimiento de gitvillance y puntapie-ejemplo-noticias
 
 Cada tanto hay que actualizar las versiones y ver que todo compile bien. 
-Si se cambia puntapie-inicial hay que avanzar la base en puntapie-ejemplo-noticias
+Si se cambia gitvillance hay que avanzar la base en puntapie-ejemplo-noticias
 
 ## prueba del sistema de ejemplo
 
@@ -60,7 +60,7 @@ Arrancar el backend
 npm start
 ```
 
-Y abrir el navegador en [http://localhost:3000/puntapie_inicial](http://localhost:3000/puntapie_inicial) o el puerto que figure en `local-config.yaml`
+Y abrir el navegador en [http://localhost:3000/gitvillance](http://localhost:3000/gitvillance) o el puerto que figure en `local-config.yaml`
 
 ###
 

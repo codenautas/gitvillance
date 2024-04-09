@@ -1,5 +1,5 @@
 {
-  "name": "puntapie-inicial",
+  "name": "gitvillance",
   "version": "0.1.7",
   "private": true,
   "license": "MIT",
@@ -11,7 +11,7 @@
     "install"
   ],
   "dependencies": {
-    "backend-plus": "^2.0.0-rc.11",
+    "backend-plus": "^2.0.0-rc.13",
     "pg-triggers": "^0.3.2"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
 {
-    "window.title": "🏗 ${dirty}${rootName}${separator}${activeEditorMedium}",
+    "window.title": "🐱 ${dirty}${rootName}${separator}${activeEditorMedium}",
     "typescript.tsdk": "node_modules\\typescript\\lib"
 }

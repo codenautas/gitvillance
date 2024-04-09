@@ -1,18 +1,18 @@
 server:
   port: 3000
-  base-url: /puntapie_inicial
+  base-url: /gitvillance
 db:
   description: base de prueba
   host: localhost
   port: 5432
-  database: puntapie_inicial_db
-  schema: puntapie_inicial
-  user: puntapie_inicial_admin
+  database: gitvillance_db
+  schema: gitvillance
+  user: gitvillance_admin
   password: cambiar_esta_clave
 install:
   dump:
     db:
-      owner: puntapie_inicial_owner
+      owner: gitvillance_owner
 client-setup: 
   lang: es
 devel:

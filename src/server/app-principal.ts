@@ -5,6 +5,7 @@ import { AppBackend, Context, Request,
 } from "./types-principal";
 
 import { usuarios   } from './table-usuarios';
+import { repos      } from './table-repos';
 
 import {staticConfigYaml} from './def-config';
 
@@ -18,6 +19,10 @@ export class AppPuntapieInicial extends AppBackend{
     }
     override getMenu(context:Context):MenuDefinition{
         var menuContent:MenuInfoBase[]=[];
+        menuContent.push(
+            {menuType:'table', name:'repos'},
+            {menuType:'proc', name:'actualizar'},
+        )
         if(context.user && context.user.rol=="admin"){
             menuContent.push(
                 {menuType:'menu', name:'config', label:'configurar', menuContent:[
@@ -58,6 +63,7 @@ export class AppPuntapieInicial extends AppBackend{
         this.getTableDefinition={
             ... this.getTableDefinition,
             usuarios  ,    
+            repos     ,
         }
     }       
 }

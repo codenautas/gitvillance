@@ -5,9 +5,9 @@ server:
 db:
   motor: postgresql
   host: localhost
-  database: puntapie_inicial_db
-  schema: puntapie_inicial
-  user: puntapie_inicial_admin
+  database: gitvillance_db
+  schema: gitvillance
+  user: gitvillance_admin
 login:
   table: usuarios
   userFieldName: usuario
@@ -29,7 +29,7 @@ client-setup:
 install:
   dump:
     db:
-      owner: puntapie_inicial_owner
+      owner: gitvillance_owner
     scripts:
       post-adapt:
       - ../node_modules/pg-triggers/lib/recreate-his.sql
