@@ -12,7 +12,9 @@
   ],
   "dependencies": {
     "backend-plus": "^2.0.0-rc.13",
-    "pg-triggers": "^0.3.2"
+    "guarantee-type": "0.1.2",
+    "pg-triggers": "^0.3.2",
+    "simple-git": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^20.12.6",

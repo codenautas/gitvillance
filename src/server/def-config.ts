@@ -38,4 +38,6 @@ install:
       - ../node_modules/pg-triggers/lib/enance.sql    
 logo: 
   path: client/img
+gitvillance:
+  local-repo: ./local-repo
 `;

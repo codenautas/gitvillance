@@ -1,21 +1,28 @@
 "use strict";
 
 import { AppBackend, Context, Request, 
-    ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase
+    ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase,
 } from "./types-principal";
 
 import { usuarios   } from './table-usuarios';
 import { repos      } from './table-repos';
 
 import {staticConfigYaml} from './def-config';
+import { ProceduresPrincipal } from './procedures-principal';
 
-export class AppPuntapieInicial extends AppBackend{
+export class AppPrincipal extends AppBackend{
     constructor(){
         super();
     }
     override configStaticConfig(){
         super.configStaticConfig();
         this.setStaticConfig(staticConfigYaml);
+    }
+    override async getProcedures(){
+        return [
+            ...await super.getProcedures(),
+            ...ProceduresPrincipal
+        ]
     }
     override getMenu(context:Context):MenuDefinition{
         var menuContent:MenuInfoBase[]=[];

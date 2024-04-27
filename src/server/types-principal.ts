@@ -1,4 +1,4 @@
-import { AppPuntapieInicial } from "./app-principal";
+import { AppPrincipal } from "./app-principal";
 
 // exposes APIs from this package
 export * from "backend-plus";
@@ -10,7 +10,7 @@ declare module "backend-plus"{
         es:{admin:boolean, oficina:boolean, puedePares:boolean}
     }
     interface ProcedureContext {
-        be:AppPuntapieInicial
+        be:AppPrincipal
     }
     interface ClientSetup {
         tableData:Record<string, Record<string, Record<string, any>>> // tableName -> json(pk) -> fieldName -> value
@@ -18,6 +18,16 @@ declare module "backend-plus"{
     interface User {
         usuario:string
         rol:string
+    }
+    interface AppConfigBin {
+        git: {
+            cmd: string
+        }
+    }
+    interface AppConfig {
+        gitvillance: {
+            "local-repo": string
+        }
     }
 }
 
