@@ -4,6 +4,8 @@ import { AppPrincipal } from "./app-principal";
 export * from "backend-plus";
 export * from "pg-promise-strict";
 
+export type RepoPk = {host:string, org:string, repo:string}
+
 declare module "backend-plus"{
     interface Context {
         forDump?:boolean
