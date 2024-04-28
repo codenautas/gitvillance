@@ -1,14 +1,18 @@
 "use strict";
 
-import {TableDefinition, TableContext} from "./types-principal";
+import {TableDefinition, TableContext, FieldDefinition} from "./types-principal";
 
-var mainPrimaryKey = ['module']
+export const modulesPk = ['module']
+
+export const modulesPkFields = [
+    {name:'module'           , typeName:'text'    , nullable:false              },
+] satisfies FieldDefinition[]
 
 export function modulesSource(params:{main?:boolean, version?:boolean, readonly?:boolean}){
     var def = {
         editable: !params.readonly && params.main,
         fields: [
-            {name:'module'           , typeName:'text'    , nullable:false              },
+            ...modulesPkFields,
             {name:'version'          , typeName:'text'    , nullable:!params.version    },
             {name:'guard'            , typeName:'boolean' , inTable: params.main        },
             {name:'fetched'          , typeName:'boolean' , inTable: params.version     },
@@ -25,9 +29,9 @@ export function modules(_context:TableContext):TableDefinition{
         }),
         name: 'modules',
         title: 'modules',
-        primaryKey: mainPrimaryKey,
+        primaryKey: modulesPk,
         detailTables:[
-            {table:'module_version', fields:mainPrimaryKey, abr:'V'}
+            {table:'module_version', fields:modulesPk, abr:'V'}
         ]
     }
 }
@@ -39,6 +43,6 @@ export function module_version(_context:TableContext):TableDefinition{
         }),
         name:'module_version',
         title: 'module versions',
-        primaryKey: [...mainPrimaryKey, 'version'],
+        primaryKey: [...modulesPk, 'version'],
     };
 }

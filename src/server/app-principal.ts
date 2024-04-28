@@ -9,6 +9,8 @@ import { usuarios                } from './table-usuarios';
 import { hosts                   } from './table-hosts';
 import { repos_vault             } from './table-repos';
 import { repos                   } from './table-repos';
+import { modules                 } from './table-modules';
+import { repo_modules            } from './table-repo_modules';
 
 import {staticConfigYaml} from './def-config';
 import { ProceduresPrincipal } from './procedures-principal';
@@ -19,7 +21,7 @@ import { simpleGit } from 'simple-git'
 import { expected } from 'cast-error'
 import * as JSON4all from 'json4all'
 import {strict as likeAr} from 'like-ar';
-import { guarantee, is } from "guarantee-type";
+import { guarantee, is, Description, DefinedType } from "guarantee-type";
 import * as bestGlobals from 'best-globals'
 
 async function pathExists(path:string){
@@ -33,6 +35,19 @@ async function pathExists(path:string){
     }
 }
 
+async function objectAwaiter<T>(object: T): Promise<{[k in keyof T]: Awaited<T[k]>}>{
+    var acum: Partial< {[k in keyof T]: Awaited<T[k]>} > = {}
+    for (var k in object) {
+        acum[k] = await object[k];
+    }
+    return acum as {[k in keyof T]: Awaited<T[k]>};
+}
+
+async function readJson<CurrentD extends Description<any>>(description:CurrentD, path:string): Promise<DefinedType<CurrentD>>{
+    const content = await fs.readFile(path, 'utf-8')
+    const anonymousObject = guarantee(description, JSON.parse(content))
+    return anonymousObject;
+}
 
 export class AppPrincipal extends AppBackend{
     constructor(){
@@ -91,27 +106,39 @@ export class AppPrincipal extends AppBackend{
     }
     async updateRepoFetchingInfo(client: Client, repoPk:RepoPk, changeExpressions:{fetching?:bestGlobals.DateTime, fetch_result:string|null, fetched?:bestGlobals.DateTime}){
         var q = this.db.quoteNullable;
-        return (await client.query(`
+        await client.query(`
             UPDATE repos_vault r
                 SET ${likeAr(changeExpressions).map((value, key)=>(value !== undefined ? `${key} = ${q(value)}` : undefined)).join(', ')}
                 FROM hosts h
                 WHERE r.host = $1 AND org = $2 AND repo = $3 AND h.host = r.host
-                RETURNING base_url
+                RETURNING 1
                 `
             , [repoPk.host, repoPk.org, repoPk.repo]
-        ).fetchUniqueRow()).row
+        ).fetchUniqueRow();
     }
-    async repoDownload(client: Client, repoPk:RepoPk){
+    async repoKeys(client: Client, repoPk:RepoPk){
         var be = this;
-        var {org, repo} = repoPk;
+        var {host, org, repo} = repoPk;
+        var result = await client.query(`
+            SELECT *
+                FROM hosts h
+                WHERE h.host = $1`
+            , [host]
+        ).fetchUniqueRow();
         var {base_url} = guarantee(
             is.object({
                 base_url: is.string
             }),
-            await be.updateRepoFetchingInfo(client, repoPk, {fetching: bestGlobals.datetime.now(), fetch_result:null})
-        )
+            result.row
+        );
         const url = new URL(Path.posix.join(org, repo), base_url)
         const path = Path.join(be.config.gitvillance["local-repo"], url.hostname, org, repo)
+        return {base_url, url, path, arrayPk:[host, org, repo]};
+    }
+    async repoDownload(client: Client, repoPk:RepoPk){
+        var be = this;
+        var {path, url} = await be.repoKeys(client, repoPk);
+        await be.updateRepoFetchingInfo(client, repoPk, {fetching: bestGlobals.datetime.now(), fetch_result:null})
         try {
             var result:string|undefined;
             if (await pathExists(path)) {
@@ -131,18 +158,33 @@ export class AppPrincipal extends AppBackend{
         }
         return result;
     }
-    async repoDownload2(host:string, org:string, repo:string){
-        var be = this;
-        const url = new URL(Path.posix.join(org, repo), host)
-        const path = Path.join(be.config.gitvillance["local-repo"], url.hostname, org, repo)
-        if (await pathExists(path)) {
-            const git = simpleGit(path);
-            return (await git.pull()).summary;
-        } else {
-            const git = simpleGit();
-            await fs.mkdir(path, {recursive:true});
-            return await git.clone(url.toString(), path);
-        }
+    async repoParse(client: Client, repoPk:RepoPk){
+        const be = this;
+        const {path, arrayPk} = await be.repoKeys(client, repoPk);
+        const packages = await objectAwaiter({
+            json: readJson(
+                is.object({
+                    version: is.string,
+                    dependencies: is.object({}),
+                    devDependencies: is.object({})
+                }),
+                Path.join(path, 'package.json')
+            ),
+            lock: readJson(
+                is.object({
+                    packages: is.object({}),
+                }),
+                Path.join(path, 'package-lock.json')
+            )
+        });
+        await client.query(`
+            UPDATE repos_vault
+                SET version = $4
+                WHERE host = $1 AND org = $2 AND repo = $3
+                RETURNING 1`,
+            [...arrayPk, packages.json.version]
+        ).fetchUniqueRow();
+        return {version: packages.json.version}
     }
     override prepareGetTables(){
         super.prepareGetTables();
@@ -152,6 +194,8 @@ export class AppPrincipal extends AppBackend{
             hosts                   ,
             repos_vault             , 
             repos                   ,
+            modules                 ,
+            repo_modules            ,
         }
     }
 }
