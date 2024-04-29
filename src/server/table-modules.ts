@@ -36,12 +36,12 @@ export function modules(_context:TableContext):TableDefinition{
     }
 }
 
-export function module_version(_context:TableContext):TableDefinition{
+export function module_versions(_context:TableContext):TableDefinition{
     return {
         ...modulesSource({
             version:true
         }),
-        name:'module_version',
+        name:'module_versions',
         title: 'module versions',
         primaryKey: [...modulesPk, 'version'],
     };

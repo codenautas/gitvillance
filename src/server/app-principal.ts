@@ -1,7 +1,7 @@
 "use strict";
 
 import { AppBackend, Context, Request, 
-    ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase, Client,
+    ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase, 
     RepoPk
 } from "./types-principal";
 
@@ -23,6 +23,7 @@ import * as JSON4all from 'json4all'
 import {strict as likeAr} from 'like-ar';
 import { guarantee, is, Description, DefinedType } from "guarantee-type";
 import * as bestGlobals from 'best-globals'
+import { ProcedureContext } from "backend-plus";
 
 async function pathExists(path:string){
     try {
@@ -43,10 +44,11 @@ async function objectAwaiter<T>(object: T): Promise<{[k in keyof T]: Awaited<T[k
     return acum as {[k in keyof T]: Awaited<T[k]>};
 }
 
-async function readJson<CurrentD extends Description<any>>(description:CurrentD, path:string): Promise<DefinedType<CurrentD>>{
+// @ts-expect-error infinite Type instantiation is excessively deep and possibly infinite
+async function readJson<CurrentD extends Description>(description:CurrentD, path:string): Promise<DefinedType<CurrentD>>{
     const content = await fs.readFile(path, 'utf-8')
-    const anonymousObject = guarantee(description, JSON.parse(content))
-    return anonymousObject;
+    const typedObject = guarantee(description, JSON.parse(content))
+    return typedObject;
 }
 
 export class AppPrincipal extends AppBackend{
@@ -67,7 +69,7 @@ export class AppPrincipal extends AppBackend{
         var menuContent:MenuInfoBase[]=[];
         menuContent.push(
             {menuType:'table', name:'repos'},
-            {menuType:'proc', name:'actualizar'},
+            {menuType:'proc', name:'repos_download'},
         )
         if(context.user && context.user.rol=="admin"){
             menuContent.push(
@@ -104,27 +106,29 @@ export class AppPrincipal extends AppBackend{
         ] satisfies ClientModuleDefinition[];
         return list;
     }
-    async updateRepoFetchingInfo(client: Client, repoPk:RepoPk, changeExpressions:{fetching?:bestGlobals.DateTime, fetch_result:string|null, fetched?:bestGlobals.DateTime}){
+    async updateRepoFetchingInfo(repoPk:RepoPk, changeExpressions:{fetching?:bestGlobals.DateTime, fetch_result:string|null, fetched?:bestGlobals.DateTime}){
         var q = this.db.quoteNullable;
-        await client.query(`
-            UPDATE repos_vault r
-                SET ${likeAr(changeExpressions).map((value, key)=>(value !== undefined ? `${key} = ${q(value)}` : undefined)).join(', ')}
-                FROM hosts h
-                WHERE r.host = $1 AND org = $2 AND repo = $3 AND h.host = r.host
-                RETURNING 1
-                `
-            , [repoPk.host, repoPk.org, repoPk.repo]
-        ).fetchUniqueRow();
+        await this.inTransaction(null, client =>
+            client.query(`
+                UPDATE repos_vault r
+                    SET ${likeAr(changeExpressions).map((value, key)=>(value !== undefined ? `${key} = ${q(value)}` : undefined)).join(', ')}
+                    FROM hosts h
+                    WHERE r.host = $1 AND org = $2 AND repo = $3 AND h.host = r.host
+                    RETURNING 1
+                    `
+                , [repoPk.host, repoPk.org, repoPk.repo]
+            ).fetchUniqueRow()
+        )
     }
-    async repoKeys(client: Client, repoPk:RepoPk){
+    async repoKeys(repoPk:RepoPk){
         var be = this;
         var {host, org, repo} = repoPk;
-        var result = await client.query(`
+        var result = await be.inTransaction(null, client => client.query(`
             SELECT *
                 FROM hosts h
                 WHERE h.host = $1`
             , [host]
-        ).fetchUniqueRow();
+        ).fetchUniqueRow());
         var {base_url} = guarantee(
             is.object({
                 base_url: is.string
@@ -135,10 +139,10 @@ export class AppPrincipal extends AppBackend{
         const path = Path.join(be.config.gitvillance["local-repo"], url.hostname, org, repo)
         return {base_url, url, path, arrayPk:[host, org, repo]};
     }
-    async repoDownload(client: Client, repoPk:RepoPk){
+    async repoDownload(repoPk:RepoPk){
         var be = this;
-        var {path, url} = await be.repoKeys(client, repoPk);
-        await be.updateRepoFetchingInfo(client, repoPk, {fetching: bestGlobals.datetime.now(), fetch_result:null})
+        var {path, url} = await be.repoKeys(repoPk);
+        await be.updateRepoFetchingInfo(repoPk, {fetching: bestGlobals.datetime.now(), fetch_result:null})
         try {
             var result:string|undefined;
             if (await pathExists(path)) {
@@ -150,41 +154,100 @@ export class AppPrincipal extends AppBackend{
                 await fs.mkdir(path, {recursive:true});
                 result = await git.clone(url.toString(), path);
             }
-            await be.updateRepoFetchingInfo(client, repoPk, {fetched: bestGlobals.datetime.now(), fetch_result:result || null})
+            await be.updateRepoFetchingInfo(repoPk, {fetched: bestGlobals.datetime.now(), fetch_result:result || null})
         } catch (err) {
             const error = expected(err);
             result = error.message
-            await be.updateRepoFetchingInfo(client, repoPk, {fetch_result:result || 'Error type ' + err})
+            await be.updateRepoFetchingInfo(repoPk, {fetch_result:result || 'Error type ' + err})
         }
         return result;
     }
-    async repoParse(client: Client, repoPk:RepoPk){
+    async repoParse(repoPk:RepoPk){
         const be = this;
-        const {path, arrayPk} = await be.repoKeys(client, repoPk);
+        const {path, arrayPk} = await be.repoKeys(repoPk);
         const packages = await objectAwaiter({
             json: readJson(
                 is.object({
                     version: is.string,
-                    dependencies: is.object({}),
-                    devDependencies: is.object({})
+                    dependencies   : is.recordString.string,
+                    devDependencies: is.recordString.string
                 }),
                 Path.join(path, 'package.json')
             ),
             lock: readJson(
                 is.object({
-                    packages: is.object({}),
+                    packages: is.recordString.object({version: is.string}),
                 }),
                 Path.join(path, 'package-lock.json')
             )
         });
-        await client.query(`
+        var parsed = bestGlobals.datetime.now();
+        await be.inTransaction(null, client => client.query(`
             UPDATE repos_vault
-                SET version = $4
+                SET version = $4, parsed = $5
                 WHERE host = $1 AND org = $2 AND repo = $3
                 RETURNING 1`,
-            [...arrayPk, packages.json.version]
-        ).fetchUniqueRow();
+            [...arrayPk, packages.json.version, parsed]
+        ).fetchUniqueRow());
+        var repoModulesData:{section:string, module:string, version:string, version_lock:string}[] = []
+        var section: keyof typeof packages.json;
+        function isDependenciesSection(section: keyof typeof packages.json): section is 'dependencies' {
+            return section.match(/dependencies$/i) != null
+        }
+        for (section in packages.json) {
+            if (isDependenciesSection(section)) {
+                for (var module in packages.json[section]) {
+                    var version = packages.json[section][module];
+                    // var version_lock = (packages.lock.packages as Record<string,string>)[`node_modules/${module}`];
+                    var version_lock = packages.lock.packages[`node_modules/${module}`].version;
+                    repoModulesData.push({section, module, version, version_lock})
+                }
+            }
+        }
+        await be.inTransaction(null, async client => {
+            await client.query(`
+                INSERT INTO repo_modules (host, org, repo, section, module, version, version_lock, parsed)
+                    SELECT $1 as host, $2 as org, $3 as repo, j.*, $4 as parsed
+                        FROM json_to_recordset( $5::json ) as j(section text, module text, version text, version_lock text)
+                    ON CONFLICT (host, org, repo, module, section) DO UPDATE
+                        SET version = excluded.version, version_lock = excluded.version_lock, parsed = excluded.parsed
+                    `,
+                [...arrayPk, parsed, JSON.stringify(repoModulesData)]
+            ).execute()
+            await client.query(`
+                DELETE FROM repo_modules 
+                    WHERE host = $1 AND org = $2 AND repo = $3 AND parsed <> $4
+                    `,
+                [...arrayPk, parsed]
+            ).execute()
+        });
         return {version: packages.json.version}
+    }
+    async reposDownload(context:ProcedureContext){
+        var be = this;
+        var limit = bestGlobals.date.today().sub(bestGlobals.timeInterval.iso('1D'));
+        var pendings = guarantee(
+            is.array.object({
+                host: is.string,
+                org: is.string,
+                repo: is.string,
+            }),
+            (await context.client.query(
+                `SELECT host, org, repo
+                    FROM repos r INNER JOIN repos_vault v USING (host, org, repo)
+                    WHERE (fetching IS NULL OR fetching < $1) AND guard
+                    ORDER BY repo`,
+                [limit]
+            ).fetchAll()).rows
+        );
+        var i = 0; 
+        for (var repoPk of pendings) {
+            context.informProgress({message: likeAr(repoPk).array().join(','), lengthComputable:true, loaded:i++, total:pendings.length})
+            await be.repoDownload(repoPk);
+            await be.repoParse(repoPk);
+        }
+        context.informProgress({message: 'DONE!', lengthComputable:true, loaded:pendings.length, total:pendings.length})
+        return 'OK';
     }
     override prepareGetTables(){
         super.prepareGetTables();

@@ -12,10 +12,19 @@ export const ProceduresPrincipal:ProcedureDef[] = [
         ],
         coreFunction: async function coreFunction(context: ProcedureContext, parameters:RepoPk) {
             const {be} = context;
-            return be.repoDownload(context.client, parameters)
+            return be.repoDownload(parameters)
         }
     },
     {
+        action: 'repos_download',
+        parameters: [
+        ],
+        coreFunction: async function coreFunction(context: ProcedureContext, _parameters:RepoPk) {
+            const {be} = context;
+            return be.reposDownload(context)
+        }
+    },
+{
         action: 'repo_parse',
         parameters: [
             {name: 'host', typeName:'text'},
@@ -24,7 +33,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
         ],
         coreFunction: async function coreFunction(context: ProcedureContext, parameters:RepoPk) {
             const {be} = context;
-            return be.repoParse(context.client, parameters)
+            return be.repoParse(parameters)
         }
     }
 ];

@@ -4,31 +4,48 @@ import {TableDefinition, TableContext, FieldDefinition} from "./types-principal"
 
 export const reposPk = ['host', 'org', 'repo']
 export const reposPkFields = [
-    {name:'host'             , typeName:'text'     , nullable:false              },
-    {name:'org'              , typeName:'text'     , nullable:false              },
-    {name:'repo'             , typeName:'text'     , nullable:false              },
+    {name:'host'             , typeName:'text'     , nullable:false          },
+    {name:'org'              , typeName:'text'     , nullable:false          },
+    {name:'repo'             , typeName:'text'     , nullable:false          },
 ] satisfies FieldDefinition[]
 
 export function reposSource(params:{main?:boolean, vault?:boolean, editable?:boolean}){
+    var fields = ([
+            ...(reposPkFields.map(field=>({...field, table:'repos_vault'}))),
+            {name:'guard'            , typeName:'boolean'  , inTable: params.main  , table: 'repos' },
+            {name:'fetched'          , typeName:'timestamp', inTable: params.vault , editable:false },
+            {name:'fetching'         , typeName:'timestamp', inTable: params.vault , editable:false },
+            {name:'fetch_result'     , typeName:'text'     , inTable: params.vault , editable:false },
+            {name:'version'          , typeName:'text'     , inTable: params.vault , editable:false },
+            {name:'parsed'           , typeName:'timestamp', inTable: params.vault , editable:false },
+        ] as FieldDefinition[])
     var def = {
-        editable: params.editable ?? params.main,
-        fields: [
-            ...reposPkFields,
-            {name:'guard'            , typeName:'boolean'  , inTable: params.main        },
-            {name:'fetched'          , typeName:'timestamp', inTable: params.vault       },
-            {name:'fetching'         , typeName:'timestamp', inTable: params.vault       },
-            {name:'fetch_result'     , typeName:'text'     , inTable: params.vault       },
-            {name:'version'          , typeName:'text'     , inTable: params.vault       },
-        ],
+        editable: true,
+        fields,
         primaryKey: reposPk,
+        sql: {
+            isTable:true,
+            from:`(SELECT ${fields.map(({name})=>name).join(', ')}
+                FROM repos r RIGHT JOIN repos_vault v USING (host, org, repo)
+                ORDER BY host, org, repo
+            )`,            
+            otherTableDefs:{
+                repos:{
+                    sql:{
+                        insertIfNotUpdate:true,
+                    }
+                }
+            }
+        }
     } satisfies Partial<TableDefinition>;
     return def;
 }
 
 export function repos(_context:TableContext):TableDefinition{
-    return {
+    var def:TableDefinition = {
         ...reposSource({
-            main:true
+            main:true,
+            vault:false
         }),
         name: 'repos',
         title: 'repositories',
@@ -37,14 +54,16 @@ export function repos(_context:TableContext):TableDefinition{
             {references: 'repos_vault', fields: reposPk},
         ],
         detailTables:[
-            {table:'modules_ver', fields:reposPk, abr:'V'}
+            {table:'repo_modules', fields:reposPk, abr:'R'}
         ]
     }
+    return def;
 }
 
 export function repos_vault(context:TableContext):TableDefinition{
     return {
         ...reposSource({
+            main:false,
             vault:true,
             editable: context.forDump
         }),
