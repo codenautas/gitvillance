@@ -24,6 +24,7 @@ import {strict as likeAr} from 'like-ar';
 import { guarantee, is, Description, DefinedType } from "guarantee-type";
 import * as bestGlobals from 'best-globals'
 import { ProcedureContext } from "backend-plus";
+import * as semver from "semver";
 
 async function pathExists(path:string){
     try {
@@ -223,6 +224,68 @@ export class AppPrincipal extends AppBackend{
         });
         return {version: packages.json.version}
     }
+    async npmUpdateFromRepo(repoPk:RepoPk){
+        const be = this;
+        await be.inTransaction(null, async client => {
+            const dependencies = guarantee(
+                is.array.object({
+                    module: is.string,
+                    must_insert: is.boolean,
+                    version: is.nullable.string,
+                    npm_latest: is.nullable.string
+                }),
+                (await client.query(`
+                    SELECT module, m.module is null must_insert, rm.version, m.npm_latest
+                        FROM repos_vault r 
+                            INNER JOIN repo_modules rm USING (host, org, repo, parsed)
+                            LEFT JOIN modules m USING (module)
+                        WHERE r.host = $1 AND r.org = $2 AND r.repo = $3
+                            AND rm.version IS DISTINCT FROM m.npm_latest `,
+                    [repoPk.host, repoPk.org, repoPk.repo]
+                ).fetchAll()).rows
+            );
+            for (const module of dependencies) {
+                if (module.must_insert || semver.gt(module.version ?? '', module.npm_latest ?? '')) {
+                    const npmUrl = new URL(module.module, 'https://registry.npmjs.org/');
+                    const request = await fetch(npmUrl);
+                    console.log('ACA 1', module);
+                    const info = guarantee(
+                        is.optional.object({
+                            "dist-tags": is.optional.object({latest:is.string}),
+                            versions: {recordString:{optional: is.object({
+                                repository: {optional: is.object({type:is.string, url:is.string})}
+                            })}}
+                        }),
+                        await request.json()
+                    );
+                    const latest = info?.["dist-tags"]?.latest
+                    const repository_url  = info?.versions?.[latest ?? '']?.repository?.url
+                    const repository_type = info?.versions?.[latest ?? '']?.repository?.type
+                    var repository_host:string|undefined
+                    var repository_org:string|undefined
+                    var repository_repo:string|undefined
+                    await fs.writeFile('local-log-info.json', JSON.stringify(info), 'utf8');
+                    if (repository_url) {
+                        console.log('ACA 2',repository_type, repository_url, repository_url.replace(/^git\+/,''));
+                        const repoUrl = repository_url ? new URL(repository_url.replace(/^git\+/,'')) : null;
+                        repository_host = repoUrl?.hostname
+                        repository_org = repoUrl?.pathname.split('/')[1]
+                        repository_repo = repoUrl?.pathname.split('/')[2]
+                        console.log('ACA 3',repository_host, repository_org, repository_repo);
+                    }
+                    await be.inTransaction(null, client => client.query(
+                        module.must_insert 
+                            ? `INSERT INTO modules (module, npm_latest, npm_info, repository_host, repository_org, repository_repo, repository_type, repository_url) 
+                                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+                            : `UPDATE module 
+                                SET npm_latest = $2, npm_info = $3, repository_host = $4, repository_org =$5 , repository_repo =$6 , repository_type = $7, repository_url = $8
+                                WHERE module = $1`, 
+                        [ module.module, latest, info, repository_host, repository_org, repository_repo, repository_type, repository_url]
+                    ).execute());
+                }
+            }
+        });
+    }
     async reposDownload(context:ProcedureContext){
         var be = this;
         var limit = bestGlobals.date.today().sub(bestGlobals.timeInterval.iso('1D'));
@@ -242,11 +305,16 @@ export class AppPrincipal extends AppBackend{
         );
         var i = 0; 
         for (var repoPk of pendings) {
-            context.informProgress({message: likeAr(repoPk).array().join(','), lengthComputable:true, loaded:i++, total:pendings.length})
+            context.informProgress({message: 'REPO ' + likeAr(repoPk).array().join(','), lengthComputable:true, loaded:i++, total:pendings.length})
             await be.repoDownload(repoPk);
             await be.repoParse(repoPk);
         }
-        context.informProgress({message: 'DONE!', lengthComputable:true, loaded:pendings.length, total:pendings.length})
+        var i = 0; 
+        for (var repoPk of pendings) {
+            context.informProgress({message: 'NPM ' + likeAr(repoPk).array().join(','), lengthComputable:true, loaded:i++, total:pendings.length})
+            await be.npmUpdateFromRepo(repoPk);
+        }
+        context.informProgress({message: 'NPM END!', lengthComputable:true, loaded:pendings.length, total:pendings.length})
         return 'OK';
     }
     override prepareGetTables(){

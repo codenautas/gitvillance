@@ -8,27 +8,22 @@ export const modulesPkFields = [
     {name:'module'           , typeName:'text'    , nullable:false              },
 ] satisfies FieldDefinition[]
 
-export function modulesSource(params:{main?:boolean, version?:boolean, readonly?:boolean}){
-    var def = {
-        editable: !params.readonly && params.main,
-        fields: [
-            ...modulesPkFields,
-            {name:'version'          , typeName:'text'    , nullable:!params.version    },
-            {name:'guard'            , typeName:'boolean' , inTable: params.main        },
-            {name:'fetched'          , typeName:'boolean' , inTable: params.version     },
-            {name:'info'             , typeName:'boolean' , inTable: params.version     },
-        ],
-    } satisfies Partial<TableDefinition>;
-    return def;
-}
 
-export function modules(_context:TableContext):TableDefinition{
+export function modules(context:TableContext):TableDefinition{
     return {
-        ...modulesSource({
-            main:true
-        }),
         name: 'modules',
         title: 'modules',
+        editable: context.forDump,
+        fields: [
+            ...modulesPkFields,
+            {name:'npm_latest'      , typeName:'text'  ,      description:'registered last version'},
+            {name:'npm_info'        , typeName:'jsonb' ,      },
+            {name:'repository_host' , typeName:'text'  ,      },
+            {name:'repository_org'  , typeName:'text'  ,      },
+            {name:'repository_repo' , typeName:'text'  ,      },
+            {name:'repository_type' , typeName:'text'  ,      },
+            {name:'repository_url'  , typeName:'text'  ,      },
+        ],
         primaryKey: modulesPk,
         detailTables:[
             {table:'module_version', fields:modulesPk, abr:'V'}
@@ -36,13 +31,3 @@ export function modules(_context:TableContext):TableDefinition{
     }
 }
 
-export function module_versions(_context:TableContext):TableDefinition{
-    return {
-        ...modulesSource({
-            version:true
-        }),
-        name:'module_versions',
-        title: 'module versions',
-        primaryKey: [...modulesPk, 'version'],
-    };
-}
