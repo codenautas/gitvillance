@@ -24,7 +24,16 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             return be.reposDownload(context)
         }
     },
-{
+    {
+        action: 'repos_auto_add',
+        parameters: [
+        ],
+        coreFunction: async function coreFunction(context: ProcedureContext, _parameters:RepoPk) {
+            const {be} = context;
+            return be.reposAutoAdd()
+        }
+    },
+    {
         action: 'repo_parse',
         parameters: [
             {name: 'host', typeName:'text'},

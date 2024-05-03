@@ -7,6 +7,7 @@ import { AppBackend, Context, Request,
 
 import { usuarios                } from './table-usuarios';
 import { hosts                   } from './table-hosts';
+import { orgs                    } from './table-orgs';
 import { repos_vault             } from './table-repos';
 import { repos                   } from './table-repos';
 import { modules                 } from './table-modules';
@@ -46,10 +47,19 @@ async function objectAwaiter<T>(object: T): Promise<{[k in keyof T]: Awaited<T[k
 }
 
 // @ts-expect-error infinite Type instantiation is excessively deep and possibly infinite
-async function readJson<CurrentD extends Description>(description:CurrentD, path:string): Promise<DefinedType<CurrentD>>{
-    const content = await fs.readFile(path, 'utf-8')
-    const typedObject = guarantee(description, JSON.parse(content))
-    return typedObject;
+async function readJson<CurrentD extends Description>(description:CurrentD, path:string, opts:{nullWhenNoEnt:boolean}): Promise<DefinedType<CurrentD>|null>{
+    const {nullWhenNoEnt} = opts
+    try {
+        const content = await fs.readFile(path, 'utf-8')
+        const typedObject = guarantee(description, JSON.parse(content))
+        return typedObject;
+    } catch (err) {
+        var error = expected(err);
+        if (error.code == 'ENOENT' && nullWhenNoEnt) {
+            return null;
+        }
+        throw err;
+    }
 }
 
 export class AppPrincipal extends AppBackend{
@@ -70,11 +80,14 @@ export class AppPrincipal extends AppBackend{
         var menuContent:MenuInfoBase[]=[];
         menuContent.push(
             {menuType:'table', name:'repos'},
+            {menuType:'table', name:'modules'},
             {menuType:'proc', name:'repos_download'},
         )
         if(context.user && context.user.rol=="admin"){
             menuContent.push(
                 {menuType:'menu', name:'config', label:'configurar', menuContent:[
+                    {menuType:'table', name:'hosts'},
+                    {menuType:'table', name:'orgs'},
                     {menuType:'table', name:'usuarios'  },
                 ]}
             )
@@ -170,16 +183,18 @@ export class AppPrincipal extends AppBackend{
             json: readJson(
                 is.object({
                     version: is.string,
-                    dependencies   : is.recordString.string,
-                    devDependencies: is.recordString.string
+                    dependencies   : {optional:is.recordString.string},
+                    devDependencies: {optional:is.recordString.string}
                 }),
-                Path.join(path, 'package.json')
+                Path.join(path, 'package.json'),
+                {nullWhenNoEnt:true}
             ),
             lock: readJson(
                 is.object({
-                    packages: is.recordString.object({version: is.string}),
+                    packages: {optional:is.recordString.object({version: is.string})},
                 }),
-                Path.join(path, 'package-lock.json')
+                Path.join(path, 'package-lock.json'),
+                {nullWhenNoEnt:true}
             )
         });
         var parsed = bestGlobals.datetime.now();
@@ -188,20 +203,26 @@ export class AppPrincipal extends AppBackend{
                 SET version = $4, parsed = $5
                 WHERE host = $1 AND org = $2 AND repo = $3
                 RETURNING 1`,
-            [...arrayPk, packages.json.version, parsed]
+            [...arrayPk, packages.json?.version, parsed]
         ).fetchUniqueRow());
-        var repoModulesData:{section:string, module:string, version:string, version_lock:string}[] = []
-        var section: keyof typeof packages.json;
-        function isDependenciesSection(section: keyof typeof packages.json): section is 'dependencies' {
-            return section.match(/dependencies$/i) != null
-        }
-        for (section in packages.json) {
-            if (isDependenciesSection(section)) {
-                for (var module in packages.json[section]) {
-                    var version = packages.json[section][module];
-                    // var version_lock = (packages.lock.packages as Record<string,string>)[`node_modules/${module}`];
-                    var version_lock = packages.lock.packages[`node_modules/${module}`].version;
-                    repoModulesData.push({section, module, version, version_lock})
+        var repoModulesData:{section:string, module:string, version:string, version_lock:string|null}[] = []
+        if (packages.json != null) {
+            var packageJson = packages.json;
+            var section: keyof typeof packageJson;
+            function isDependenciesSection(section: keyof typeof packageJson): section is 'dependencies' {
+                return section.match(/dependencies$/i) != null
+            }
+            for (section in packageJson) {
+                if (isDependenciesSection(section)) {
+                    for (var module in packageJson[section]) {
+                        const infoDep = packageJson[section];
+                        if (infoDep != null) {
+                            var version = infoDep[module];
+                            // var version_lock = (packages.lock.packages as Record<string,string>)[`node_modules/${module}`];
+                            const version_lock = packages?.lock?.packages?.[`node_modules/${module}`].version ?? null;
+                            repoModulesData.push({section, module, version, version_lock})
+                        }
+                    }
                 }
             }
         }
@@ -222,7 +243,7 @@ export class AppPrincipal extends AppBackend{
                 [...arrayPk, parsed]
             ).execute()
         });
-        return {version: packages.json.version}
+        return {version: packages.json?.version ?? null}
     }
     async npmUpdateFromRepo(repoPk:RepoPk){
         const be = this;
@@ -244,8 +265,8 @@ export class AppPrincipal extends AppBackend{
                     [repoPk.host, repoPk.org, repoPk.repo]
                 ).fetchAll()).rows
             );
-            for (const module of dependencies) {
-                if (module.must_insert || semver.gt(module.version ?? '', module.npm_latest ?? '')) {
+            await Promise.all(dependencies.map(async module=>{
+                if (module.must_insert || semver.gt(semver.minVersion(module.version ?? '*') ?? '', module.npm_latest ?? '')) {
                     const npmUrl = new URL(module.module, 'https://registry.npmjs.org/');
                     const request = await fetch(npmUrl);
                     console.log('ACA 1', module);
@@ -253,7 +274,7 @@ export class AppPrincipal extends AppBackend{
                         is.optional.object({
                             "dist-tags": is.optional.object({latest:is.string}),
                             versions: {recordString:{optional: is.object({
-                                repository: {optional: is.object({type:is.string, url:is.string})}
+                                repository: {optional: is.object({type:is.optional.string, url:is.string})}
                             })}}
                         }),
                         await request.json()
@@ -283,7 +304,7 @@ export class AppPrincipal extends AppBackend{
                         [ module.module, latest, info, repository_host, repository_org, repository_repo, repository_type, repository_url]
                     ).execute());
                 }
-            }
+            }));
         });
     }
     async reposDownload(context:ProcedureContext){
@@ -317,12 +338,25 @@ export class AppPrincipal extends AppBackend{
         context.informProgress({message: 'NPM END!', lengthComputable:true, loaded:pendings.length, total:pendings.length})
         return 'OK';
     }
+    async reposAutoAdd(){
+        var be = this;
+        var result = await be.inTransaction(null, async client=>client.query(`
+            INSERT INTO repos_vault (host, org, repo)
+                SELECT DISTINCT repository_host, repository_org, repository_repo
+                    FROM modules m 
+                        INNER JOIN orgs o       ON repository_host = o.host    AND repository_org = o.org
+                        LEFT JOIN repos_vault x ON repository_host = x.host    AND repository_org = x.org     AND repository_repo = x.repo
+                    WHERE x.host IS NULL       AND repository_host IS NOT NULL AND repository_org IS NOT NULL AND repository_repo IS NOT NULL
+        `).execute());
+        return {new_repos_inserted: result.rowCount}
+    }
     override prepareGetTables(){
         super.prepareGetTables();
         this.getTableDefinition={
             ... this.getTableDefinition,
             usuarios                ,
             hosts                   ,
+            orgs                    ,
             repos_vault             , 
             repos                   ,
             modules                 ,

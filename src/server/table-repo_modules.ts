@@ -20,8 +20,11 @@ export function repo_modules(context:TableContext):TableDefinition{
             {name:'parsed',          typeName:'timestamp',               }
         ],
         primaryKey: mainPrimaryKey,
+        softForeignKeys:[
+            {references:'modules', fields:modulesPk, displayAllFields:true, displayAfterFieldName:'parsed'}
+        ],
         detailTables:[
-            {table:'module_version', fields:mainPrimaryKey, abr:'V'}
+            {table:'repo_modules', fields:modulesPk, abr:'R'}
         ]
     };
 }

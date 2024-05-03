@@ -17,7 +17,7 @@ export function modules(context:TableContext):TableDefinition{
         fields: [
             ...modulesPkFields,
             {name:'npm_latest'      , typeName:'text'  ,      description:'registered last version'},
-            {name:'npm_info'        , typeName:'jsonb' ,      },
+            {name:'npm_info'        , typeName:'jsonb' ,      allow:{select: context.forDump}},
             {name:'repository_host' , typeName:'text'  ,      },
             {name:'repository_org'  , typeName:'text'  ,      },
             {name:'repository_repo' , typeName:'text'  ,      },

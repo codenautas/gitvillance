@@ -2,8 +2,7 @@
 
 import {TableDefinition, TableContext} from "./types-principal";
 
-var primaryKey = ['host']
-
+export const primaryKey = ['host']
 
 export function hosts(_context:TableContext):TableDefinition{
     return {
@@ -15,6 +14,7 @@ export function hosts(_context:TableContext):TableDefinition{
         ],
         primaryKey,
         detailTables:[
+            {table:'orgs' , fields:primaryKey, abr:'O'},
             {table:'repos', fields:primaryKey, abr:'R'}
         ]
     }

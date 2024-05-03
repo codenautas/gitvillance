@@ -54,7 +54,7 @@ export function repos(_context:TableContext):TableDefinition{
             {references: 'repos_vault', fields: reposPk},
         ],
         detailTables:[
-            {table:'repo_modules', fields:reposPk, abr:'R'}
+            {table:'repo_modules', fields:reposPk, abr:'D', label:'dependencies'}
         ]
     }
     return def;
