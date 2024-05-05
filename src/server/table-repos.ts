@@ -23,6 +23,12 @@ export function reposSource(params:{main?:boolean, vault?:boolean, editable?:boo
         editable: true,
         fields,
         primaryKey: reposPk,
+        detailTables:[
+            {table:'repo_modules', fields:reposPk, abr:'D', label:'dependencies'},
+            {table:'modules'     , fields:[
+                {source:'host',target:'repository_host'},{source:'org',target:'repository_org'},{source:'repo',target:'repository_repo'}
+            ], abr:'M', label:'modules'}
+        ],
         sql: {
             isTable:true,
             from:`(SELECT ${fields.map(({name})=>name).join(', ')}
@@ -51,10 +57,7 @@ export function repos(_context:TableContext):TableDefinition{
         title: 'repositories',
         foreignKeys:[
             {references: 'hosts'      , fields: ['host']},
-            {references: 'repos_vault', fields: reposPk},
-        ],
-        detailTables:[
-            {table:'repo_modules', fields:reposPk, abr:'D', label:'dependencies'}
+            {references: 'repos_vault', fields: reposPk, onDelete:'cascade'},
         ]
     }
     return def;

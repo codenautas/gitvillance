@@ -21,7 +21,7 @@ export function repo_modules(context:TableContext):TableDefinition{
         ],
         primaryKey: mainPrimaryKey,
         softForeignKeys:[
-            {references:'modules', fields:modulesPk, displayAllFields:true, displayAfterFieldName:'parsed'}
+            {references:'modules', fields:modulesPk, displayFields:['npm_latest','repository_host','repository_org','repository_repo'], displayAfterFieldName:'parsed'}
         ],
         detailTables:[
             {table:'repo_modules', fields:modulesPk, abr:'R'}

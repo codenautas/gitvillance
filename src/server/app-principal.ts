@@ -79,7 +79,7 @@ export class AppPrincipal extends AppBackend{
     override getMenu(context:Context):MenuDefinition{
         var menuContent:MenuInfoBase[]=[];
         menuContent.push(
-            {menuType:'table', name:'repos'},
+            {menuType:'table', name:'repos', table:'repos_vault'},
             {menuType:'table', name:'modules'},
             {menuType:'proc', name:'repos_download'},
         )
