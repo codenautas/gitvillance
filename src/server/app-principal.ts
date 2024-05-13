@@ -81,7 +81,7 @@ export class AppPrincipal extends AppBackend{
         menuContent.push(
             {menuType:'table', name:'repos', table:'repos_vault'},
             {menuType:'table', name:'modules'},
-            {menuType:'proc', name:'repos_download'},
+            {menuType:'proc', name:'actualizar', proc:'update_db'},
         )
         if(context.user && context.user.rol=="admin"){
             menuContent.push(
@@ -131,7 +131,7 @@ export class AppPrincipal extends AppBackend{
                     RETURNING 1
                     `
                 , [repoPk.host, repoPk.org, repoPk.repo]
-            ).fetchUniqueRow()
+            ).fetchUniqueRow(`No se encuetra el repositorio ${repoPk.host} ${repoPk.org} ${repoPk.repo}`)
         )
     }
     async repoKeys(repoPk:RepoPk){
@@ -198,13 +198,6 @@ export class AppPrincipal extends AppBackend{
             )
         });
         var parsed = bestGlobals.datetime.now();
-        await be.inTransaction(null, client => client.query(`
-            UPDATE repos_vault
-                SET version = $4, parsed = $5
-                WHERE host = $1 AND org = $2 AND repo = $3
-                RETURNING 1`,
-            [...arrayPk, packages.json?.version, parsed]
-        ).fetchUniqueRow());
         var repoModulesData:{section:string, module:string, version:string, version_lock:string|null}[] = []
         if (packages.json != null) {
             var packageJson = packages.json;
@@ -243,10 +236,18 @@ export class AppPrincipal extends AppBackend{
                 [...arrayPk, parsed]
             ).execute()
         });
+        await be.inTransaction(null, client => client.query(`
+            UPDATE repos_vault
+                SET version = $4, parsed = $5
+                WHERE host = $1 AND org = $2 AND repo = $3
+                RETURNING 1`,
+            [...arrayPk, packages.json?.version, parsed]
+        ).fetchUniqueRow());
         return {version: packages.json?.version ?? null}
     }
     async npmUpdateFromRepo(repoPk:RepoPk){
         const be = this;
+        const {arrayPk} = await be.repoKeys(repoPk);
         await be.inTransaction(null, async client => {
             const dependencies = guarantee(
                 is.array.object({
@@ -261,12 +262,19 @@ export class AppPrincipal extends AppBackend{
                             INNER JOIN repo_modules rm USING (host, org, repo, parsed)
                             LEFT JOIN modules m USING (module)
                         WHERE r.host = $1 AND r.org = $2 AND r.repo = $3
-                            AND rm.version IS DISTINCT FROM m.npm_latest `,
+                            AND rm.version IS DISTINCT FROM m.npm_latest 
+                        LIMIT 4`,
                     [repoPk.host, repoPk.org, repoPk.repo]
                 ).fetchAll()).rows
             );
             await Promise.all(dependencies.map(async module=>{
-                if (module.must_insert || semver.gt(semver.minVersion(module.version ?? '*') ?? '', module.npm_latest ?? '')) {
+                var mustRetryNpm = module.must_insert
+                try {
+                    mustRetryNpm ||= semver.gt(semver.minVersion(module.version ?? '*') ?? '', module.npm_latest ?? '')
+                } catch (err) {
+                    console.log('SEMVER err', err);
+                }
+                if (mustRetryNpm) {
                     const npmUrl = new URL(module.module, 'https://registry.npmjs.org/');
                     const request = await fetch(npmUrl);
                     console.log('ACA 1', module);
@@ -291,7 +299,7 @@ export class AppPrincipal extends AppBackend{
                         const repoUrl = repository_url ? new URL(repository_url.replace(/^git\+/,'')) : null;
                         repository_host = repoUrl?.hostname
                         repository_org = repoUrl?.pathname.split('/')[1]
-                        repository_repo = repoUrl?.pathname.split('/')[2]
+                        repository_repo = repoUrl?.pathname.split('/')[2]?.replace(/\.git$/,'');
                         console.log('ACA 3',repository_host, repository_org, repository_repo);
                     }
                     await be.inTransaction(null, client => client.query(
@@ -306,37 +314,68 @@ export class AppPrincipal extends AppBackend{
                 }
             }));
         });
+        var npmed = bestGlobals.datetime.now();
+        await be.inTransaction(null, client => client.query(`
+            UPDATE repos_vault
+                SET npmed = $4
+                WHERE host = $1 AND org = $2 AND repo = $3
+                RETURNING 1`,
+            [...arrayPk, npmed]
+        ).fetchUniqueRow());
     }
-    async reposDownload(context:ProcedureContext){
-        var be = this;
-        var limit = bestGlobals.date.today().sub(bestGlobals.timeInterval.iso('1D'));
+    async pendingMachine(context:ProcedureContext, opts:{sql:string, params:any[], message:string, do: (repoPk:RepoPk) => Promise<any>}){
         var pendings = guarantee(
             is.array.object({
                 host: is.string,
                 org: is.string,
                 repo: is.string,
             }),
-            (await context.client.query(
-                `SELECT host, org, repo
-                    FROM repos r INNER JOIN repos_vault v USING (host, org, repo)
-                    WHERE (fetching IS NULL OR fetching < $1) AND guard
-                    ORDER BY repo`,
-                [limit]
-            ).fetchAll()).rows
+            (await context.client.query(opts.sql, opts.params).fetchAll()).rows
         );
         var i = 0; 
         for (var repoPk of pendings) {
-            context.informProgress({message: 'REPO ' + likeAr(repoPk).array().join(','), lengthComputable:true, loaded:i++, total:pendings.length})
-            await be.repoDownload(repoPk);
-            await be.repoParse(repoPk);
+            context.informProgress({message: opts.message + ' ' + likeAr(repoPk).array().join(','), lengthComputable:true, loaded:i++, total:pendings.length})
+            await opts.do(repoPk);
         }
-        var i = 0; 
-        for (var repoPk of pendings) {
-            context.informProgress({message: 'NPM ' + likeAr(repoPk).array().join(','), lengthComputable:true, loaded:i++, total:pendings.length})
-            await be.npmUpdateFromRepo(repoPk);
-        }
-        context.informProgress({message: 'NPM END!', lengthComputable:true, loaded:pendings.length, total:pendings.length})
-        return 'OK';
+        context.informProgress({message: opts.message + ' END!', lengthComputable:true, loaded:i, total:pendings.length});
+        return {count: i}
+    }
+    async reposDownload(context:ProcedureContext){
+        var be = this;
+        var limit = bestGlobals.date.today().sub(bestGlobals.timeInterval.iso('1D'));
+        return await be.pendingMachine(context, {
+            sql:`SELECT host, org, repo
+                FROM repos r INNER JOIN repos_vault v USING (host, org, repo)
+                WHERE (fetching IS NULL OR fetching < $1) AND guard
+                ORDER BY repo`,
+            params:[limit],
+            message: 'REPO',
+            do: repoPk => be.repoDownload(repoPk)
+        });
+    }
+    async reposParse(context:ProcedureContext){
+        var be = this;
+        return await be.pendingMachine(context, {
+            sql:`SELECT host, org, repo
+                FROM repos r INNER JOIN repos_vault v USING (host, org, repo)
+                WHERE (parsed IS NULL OR parsed < COALESCE(fetched, fetching)) AND guard
+                ORDER BY repo`,
+            params:[],
+            message: 'PARSE',
+            do: repoPk => be.repoParse(repoPk)
+        });
+    }
+    async npmsUpdateFromRepo(context:ProcedureContext){
+        var be = this;
+        return await be.pendingMachine(context, {
+            sql:`SELECT host, org, repo
+                FROM repos r INNER JOIN repos_vault v USING (host, org, repo)
+                WHERE (npmed IS NULL OR npmed < COALESCE(fetched, fetching)) AND guard
+                ORDER BY repo`,
+            params:[],
+            message: 'PARSE',
+            do: repoPk => be.npmUpdateFromRepo(repoPk)
+        });
     }
     async reposAutoAdd(){
         var be = this;
@@ -349,6 +388,14 @@ export class AppPrincipal extends AppBackend{
                     WHERE x.host IS NULL       AND repository_host IS NOT NULL AND repository_org IS NOT NULL AND repository_repo IS NOT NULL
         `).execute());
         return {new_repos_inserted: result.rowCount}
+    }
+    async allPending(context:ProcedureContext){
+        return {
+            "repo": await this.reposDownload(context),
+            "deps": await this.reposParse(context),
+            "npm": await this.npmsUpdateFromRepo(context),
+            "ins": await this.reposAutoAdd()
+        }
     }
     override prepareGetTables(){
         super.prepareGetTables();

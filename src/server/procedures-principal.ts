@@ -16,12 +16,12 @@ export const ProceduresPrincipal:ProcedureDef[] = [
         }
     },
     {
-        action: 'repos_download',
+        action: 'update_db',
         parameters: [
         ],
         coreFunction: async function coreFunction(context: ProcedureContext, _parameters:RepoPk) {
             const {be} = context;
-            return be.reposDownload(context)
+            return be.allPending(context)
         }
     },
     {

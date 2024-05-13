@@ -17,7 +17,8 @@ export function reposSource(params:{main?:boolean, vault?:boolean, editable?:boo
             {name:'fetching'         , typeName:'timestamp', inTable: params.vault , editable:false },
             {name:'fetch_result'     , typeName:'text'     , inTable: params.vault , editable:false },
             {name:'version'          , typeName:'text'     , inTable: params.vault , editable:false },
-            {name:'parsed'           , typeName:'timestamp', inTable: params.vault , editable:false },
+            {name:'parsed'           , typeName:'timestamp', inTable: params.vault , editable:false , description:'parsed the package.json to look for dependencies (modules)'},
+            {name:'npmed'            , typeName:'timestamp', inTable: params.vault , editable:false , description:'look for the repo of each module'},
         ] as FieldDefinition[])
     var def = {
         editable: true,

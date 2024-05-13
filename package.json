@@ -10,20 +10,22 @@
     "install"
   ],
   "dependencies": {
-    "backend-plus": "^2.0.0-rc.13",
+    "backend-plus": "^2.0.0-rc.14",
     "guarantee-type": "0.1.2",
     "pg-triggers": "^0.3.3",
-    "semver": "^7.6.0",
+    "semver": "^7.6.2",
     "simple-git": "^3.24.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.8",
+    "@types/node": "^20.12.11",
     "@types/semver": "^7.5.8",
     "typescript": "^5.4.5",
     "types.d.ts": "^0.6.21",
     "mixin-patch": "^0.4.1"
   },
-  "mixin-patch": {},
+  "mixin-patch": {
+    "patch": false
+  },
   "scripts": {
     "prepare": "tsc -p tsconfig-client.json && tsc -p tsconfig-server.json && tsc -p tsconfig-unlogged.json && mixin-patch",
     "build-ignore-error": "(tsc -p tsconfig-client.json || echo \"continue w/error\") && (tsc -p tsconfig-server.json  || echo \"continue w/error\") && (tsc -p tsconfig-unlogged.json || echo \"continue w/error\") && mixin-patch",
