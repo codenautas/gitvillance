@@ -29,6 +29,7 @@ declare module "backend-plus"{
     interface AppConfig {
         gitvillance: {
             "local-repo": string
+            "github-token": string
         }
     }
 }

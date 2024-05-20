@@ -21,3 +21,6 @@ devel:
 log:
   db:
     on-demand: true
+gitvillance:
+  local-repo: ../local-repo-gitvillance
+  github-token: github_pat_readonly-token_from https://github.com/settings/tokens?type=beta    
