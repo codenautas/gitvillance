@@ -10,17 +10,17 @@
     "install"
   ],
   "dependencies": {
-    "@octokit/rest": "^20.1.1",
-    "backend-plus": "^2.0.0-rc.15",
-    "guarantee-type": "0.1.2",
+    "@octokit/rest": "20.1.1",
+    "backend-plus": "^2.0.0-rc.27",
+    "guarantee-type": "0.1.3",
     "pg-triggers": "^0.3.3",
-    "semver": "^7.6.2",
-    "simple-git": "^3.24.0"
+    "semver": "^7.6.3",
+    "simple-git": "^3.25.0"
   },
   "devDependencies": {
-    "@types/node": "^20.12.12",
+    "@types/node": "^22.3.0",
     "@types/semver": "^7.5.8",
-    "typescript": "^5.4.5",
+    "typescript": "^5.5.4",
     "types.d.ts": "^0.6.21",
     "mixin-patch": "^0.4.1"
   },
@@ -28,8 +28,8 @@
     "patch": false
   },
   "scripts": {
-    "prepare": "tsc -p tsconfig-client.json && tsc -p tsconfig-server.json && tsc -p tsconfig-unlogged.json && mixin-patch",
-    "build-ignore-error": "(tsc -p tsconfig-client.json || echo \"continue w/error\") && (tsc -p tsconfig-server.json  || echo \"continue w/error\") && (tsc -p tsconfig-unlogged.json || echo \"continue w/error\") && mixin-patch",
+    "build-ignore-error": "tsc -p tsconfig-client.json && tsc -p tsconfig-server.json && tsc -p tsconfig-unlogged.json && mixin-patch",
+    "prepare": "(tsc -p tsconfig-client.json || echo \"continue w/error\") && (tsc -p tsconfig-server.json  || echo \"continue w/error\") && (tsc -p tsconfig-unlogged.json || echo \"continue w/error\") && mixin-patch",
     "build-cli": "(tsc -p tsconfig-client.json || echo \"continue w/error\") && (tsc -p tsconfig-unlogged.json || echo \"continue w/error\") && mixin-patch",
     "watch:buildC": "tsc -p tsconfig-client.json --watch",
     "watch:buildS": "tsc -p tsconfig-server.json --watch",

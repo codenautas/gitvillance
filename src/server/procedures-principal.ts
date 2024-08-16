@@ -83,7 +83,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
                 if (data?.length) {
                     toAwaitAllTogether.push(
                         be.inDbClient(null, async client => {
-                            var result = await client.query(`
+                            await client.query(`
                                 MERGE INTO repos_vault t
                                     USING (
                                             SELECT * 
