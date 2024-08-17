@@ -15,7 +15,7 @@ export function repo_modules(context:TableContext):TableDefinition{
             ...reposPkFields,
             ...modulesPkFields,
             {name:'section',         typeName:'text',      nullable:false},
-            {name:'version',         typeName:'text',      nullable:false},
+            {name:'version',         typeName:'text',      nullable:false, allowEmptyText:true},
             {name:'version_lock',    typeName:'text',                    },
             {name:'parsed',          typeName:'timestamp',               }
         ],

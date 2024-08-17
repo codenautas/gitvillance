@@ -15,6 +15,8 @@ export function orgs(_context:TableContext):TableDefinition{
         fields: [
             {name:'host'            , typeName:'text'     , nullable:false              },
             {name:'org'             , typeName:'text'     , nullable:false              },
+            {name:'repo_path'       , typeName:'text'     },
+            {name:'is_user'         , typeName:'boolean'  },
         ],
         primaryKey,
         foreignKeys:[

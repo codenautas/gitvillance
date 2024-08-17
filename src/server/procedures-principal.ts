@@ -20,9 +20,19 @@ export const ProceduresPrincipal:ProcedureDef[] = [
     {
         action: 'update_db',
         parameters: [
+            {name: 'retry_failed', typeName:'boolean', defaultValue:false}
         ],
-        coreFunction: async function coreFunction(context: ProcedureContext, _parameters:RepoPk) {
+        progress:true,
+        coreFunction: async function coreFunction(context: ProcedureContext, parameters:{retry_failed:boolean}) {
             const {be} = context;
+            if (parameters.retry_failed) {
+                context.informProgress({message: 'Retrying...'})
+                await context.client.query(`
+                    update repos_vault
+	                    set fetching = null 
+	                    where fetched is null and fetching is not null;
+                `).execute();
+            }
             return be.allPending(context)
         }
     },
@@ -66,11 +76,18 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             var loaded = 0;
             var ref = {total:0};
             var toAwaitAllTogether:Promise<any>[] = []
+            var {row:{is_user}} = await context.client.query(
+                `select is_user from orgs where host = $1 and org = $2`,
+                [parameters.host, parameters.org]
+            ).fetchUniqueRow()
             context.informProgress({idGroup:"fetching", message:'fetching', loaded:0, lengthComputable:true, total:1});
             do { 
                 loaded++
             } while(await (async function(loaded:number, ref:{total:number}){
-                var {data, ...result} = await octokit.rest.repos.listForOrg({
+                var {data, ...result} = is_user ? await octokit.rest.repos.listForUser({
+                    username: parameters.org,
+                    page: loaded
+                }) : await octokit.rest.repos.listForOrg({
                     org: parameters.org,
                     page: loaded
                 });

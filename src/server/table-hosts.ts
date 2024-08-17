@@ -11,6 +11,7 @@ export function hosts(_context:TableContext):TableDefinition{
         fields: [
             {name:'host'            , typeName:'text'     , nullable:false              },
             {name:'base_url'        , typeName:'text'     , nullable:false, isName:true },
+            {name:'repo_path'       , typeName:'text'     },
         ],
         primaryKey,
         detailTables:[

@@ -1,7 +1,7 @@
 "use strict";
 
 import { AppBackend, Context, Request, 
-    ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase, 
+    Client, ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase, 
     RepoPk
 } from "./types-principal";
 
@@ -81,7 +81,10 @@ export class AppPrincipal extends AppBackend{
         menuContent.push(
             {menuType:'table', name:'repos', table:'repos_vault'},
             {menuType:'table', name:'modules'},
-            {menuType:'proc', name:'actualizar', proc:'update_db'},
+            {menuType:'menu', name:'update', menuContent:[
+                {menuType:'proc', name:'repository backups', proc:'update_db'},
+                {menuType:'proc', name:'repository list', proc:'repos_list'},
+            ]}
         )
         if(context.user && context.user.rol=="admin"){
             menuContent.push(
@@ -120,6 +123,21 @@ export class AppPrincipal extends AppBackend{
         ] satisfies ClientModuleDefinition[];
         return list;
     }
+    override async checkDatabaseStructure(client: Client) {
+        var be = this;
+        await super.checkDatabaseStructure(client);
+        var schema = be.config.db.schema;
+        var infoRepoPath = await client.informationSchema.column(schema, 'hosts', 'repo_path')
+        if (infoRepoPath == null) {
+            console.error("-----------------------")
+            console.error("--- FALTAN COLUMNAS ---")
+            console.log("alter table hosts add column repo_path text;")
+            console.log("alter table orgs  add column repo_path text;")
+            console.log("alter table orgs  add column is_user boolean;")
+            console.log(`alter table "repo_modules" drop constraint "version<>''";`);
+            throw new Error(`Falta la columna repo.repo_path`)
+        }
+    }
     async updateRepoFetchingInfo(repoPk:RepoPk, changeExpressions:{fetching?:bestGlobals.DateTime, fetch_result:string|null, fetched?:bestGlobals.DateTime}){
         var q = this.db.quoteNullable;
         await this.inTransaction(null, client =>
@@ -137,20 +155,20 @@ export class AppPrincipal extends AppBackend{
     async repoKeys(repoPk:RepoPk){
         var be = this;
         var {host, org, repo} = repoPk;
-        var result = await be.inTransaction(null, client => client.query(`
-            SELECT *
+        var {row} = await be.inTransaction(null, client => client.query(`
+            SELECT *, (SELECT repo_path FROM orgs o WHERE o.host = h.host AND o.org = $2) as org_repo_path
                 FROM hosts h
                 WHERE h.host = $1`
-            , [host]
+            , [host, org]
         ).fetchUniqueRow());
         var {base_url} = guarantee(
             is.object({
                 base_url: is.string
             }),
-            result.row
+            row
         );
         const url = new URL(Path.posix.join(org, repo), base_url)
-        const path = Path.join(be.config.gitvillance["local-repo"], url.hostname, org, repo)
+        const path = Path.join(be.config.gitvillance["local-repo"], row.repo_path ?? url.hostname, row.org_repo_path ?? org, repo)
         return {base_url, url, path, arrayPk:[host, org, repo]};
     }
     async repoDownload(repoPk:RepoPk){
@@ -182,7 +200,7 @@ export class AppPrincipal extends AppBackend{
         const packages = await objectAwaiter({
             json: readJson(
                 is.object({
-                    version: is.string,
+                    version: is.optional.string,
                     dependencies   : {optional:is.recordString.string},
                     devDependencies: {optional:is.recordString.string}
                 }),
@@ -191,7 +209,7 @@ export class AppPrincipal extends AppBackend{
             ),
             lock: readJson(
                 is.object({
-                    packages: {optional:is.recordString.object({version: is.string})},
+                    packages: {optional:is.recordString.object({version: is.optional.string})},
                 }),
                 Path.join(path, 'package-lock.json'),
                 {nullWhenNoEnt:true}
@@ -222,7 +240,7 @@ export class AppPrincipal extends AppBackend{
         await be.inTransaction(null, async client => {
             await client.query(`
                 INSERT INTO repo_modules (host, org, repo, section, module, version, version_lock, parsed)
-                    SELECT $1 as host, $2 as org, $3 as repo, j.*, $4 as parsed
+                    SELECT $1 as host, $2 as org, $3 as repo, j.section, j.module, coalesce(j.version,''), nullif(j.version_lock,''), $4 as parsed
                         FROM json_to_recordset( $5::json ) as j(section text, module text, version text, version_lock text)
                     ON CONFLICT (host, org, repo, module, section) DO UPDATE
                         SET version = excluded.version, version_lock = excluded.version_lock, parsed = excluded.parsed
@@ -253,8 +271,8 @@ export class AppPrincipal extends AppBackend{
                 is.array.object({
                     module: is.string,
                     must_insert: is.boolean,
-                    version: is.nullable.string,
-                    npm_latest: is.nullable.string
+                    version: is.optional.string,
+                    npm_latest: is.optional.string
                 }),
                 (await client.query(`
                     SELECT module, m.module is null must_insert, rm.version, m.npm_latest
@@ -282,7 +300,7 @@ export class AppPrincipal extends AppBackend{
                         is.optional.object({
                             "dist-tags": is.optional.object({latest:is.string}),
                             versions: {recordString:{optional: is.object({
-                                repository: {optional: is.object({type:is.optional.string, url:is.string})}
+                                repository: {optional: is.object({type:is.optional.string, url:is.optional.string})}
                             })}}
                         }),
                         await request.json()
