@@ -179,15 +179,18 @@ export class AppPrincipal extends AppBackend{
     async repoDownload(repoPk:RepoPk){
         var be = this;
         var {path, url} = await be.repoKeys(repoPk);
+        // @ts-expect-error
+        var proxy:string | null = be.config.server.proxy
+        const opts = proxy ? { config: [`http.proxy=${proxy}`] }: {}
         await be.updateRepoFetchingInfo(repoPk, {fetching: bestGlobals.datetime.now(), fetch_result:null})
         try {
             var result:string|undefined;
             if (await pathExists(path)) {
-                const git = simpleGit(path);
+                const git = simpleGit(path, opts);
                 var {summary} = await git.pull();
                 result = JSON4all.toUrl(summary)
             } else {
-                const git = simpleGit();
+                const git = simpleGit(opts);
                 await fs.mkdir(path, {recursive:true});
                 result = await git.clone(url.toString(), path);
             }
