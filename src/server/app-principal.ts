@@ -46,7 +46,6 @@ async function objectAwaiter<T>(object: T): Promise<{[k in keyof T]: Awaited<T[k
     return acum as {[k in keyof T]: Awaited<T[k]>};
 }
 
-// @ts-expect-error infinite Type instantiation is excessively deep and possibly infinite
 async function readJson<CurrentD extends Description>(description:CurrentD, path:string, opts:{nullWhenNoEnt:boolean}): Promise<DefinedType<CurrentD>|null>{
     const {nullWhenNoEnt} = opts
     try {
@@ -81,8 +80,8 @@ export class AppPrincipal extends AppBackend{
         menuContent.push(
             {menuType:'table', name:'repos', table:'repos_vault'},
             {menuType:'table', name:'modules'},
-            {menuType:'menu', name:'update', menuContent:[
-                {menuType:'proc', name:'repository backups', proc:'update_db'},
+            {menuType:'menu', name:'manual_update', menuContent:[
+                {menuType:'proc', name:'repository sync', proc:'repo_sync'},
                 {menuType:'proc', name:'repository list', proc:'repos_list'},
             ]}
         )

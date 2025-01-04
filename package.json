@@ -10,18 +10,18 @@
     "install"
   ],
   "dependencies": {
-    "@octokit/rest": "20.1.1",
-    "backend-plus": "^2.0.0-rc.27",
-    "guarantee-type": "0.1.3",
+    "@octokit/rest": "21.0.2",
+    "backend-plus": "^2.1.2",
+    "guarantee-type": "0.2.2",
     "pg-triggers": "^0.3.3",
     "semver": "^7.6.3",
-    "simple-git": "^3.25.0"
+    "simple-git": "^3.27.0"
   },
   "devDependencies": {
-    "@types/node": "^22.3.0",
+    "@types/node": "^22.10.2",
     "@types/semver": "^7.5.8",
-    "typescript": "^5.5.4",
-    "types.d.ts": "^0.6.21",
+    "typescript": "^5.7.2",
+    "types.d.ts": "^0.6.22",
     "mixin-patch": "^0.4.1"
   },
   "mixin-patch": {

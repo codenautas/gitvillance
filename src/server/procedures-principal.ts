@@ -2,7 +2,7 @@
 
 import { ProcedureDef, ProcedureContext, RepoPk } from './types-principal'
 
-import { Octokit } from "@octokit/rest";
+// import { Octokit } from "@octokit/rest";
 
 export const ProceduresPrincipal:ProcedureDef[] = [
     {
@@ -18,7 +18,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
         }
     },
     {
-        action: 'update_db',
+        action: 'repo_sync',
         parameters: [
             {name: 'retry_failed', typeName:'boolean', defaultValue:false}
         ],
@@ -60,7 +60,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
     {
         action: 'repos_list',
         parameters: [
-            {name: 'host', typeName:'text', defaultValue:'github.com', references:'repos'},
+            {name: 'host', typeName:'text', defaultValue:'github.com', references:'hosts'},
             {name: 'org' , typeName:'text', references:'orgs'},
         ],
         progress:true,
@@ -69,6 +69,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             if (parameters.host != 'github.com') {
                 throw new Error('not implemented')
             }
+            const {Octokit} = await import("@octokit/rest");
             const octokit = new Octokit({
                 auth: be.config.gitvillance["github-token"],
                 userAgent: `gitvillance v${be.config.package.version}`
