@@ -64,6 +64,10 @@ async function readJson<CurrentD extends Description>(description:CurrentD, path
 export class AppPrincipal extends AppBackend{
     constructor(){
         super();
+        new Promise(async ()=>{
+            return 
+            // this.nodeFetch = (await importNodefetch()).default;
+        })
     }
     override configStaticConfig(){
         super.configStaticConfig();
@@ -323,7 +327,7 @@ export class AppPrincipal extends AppBackend{
                         module.must_insert 
                             ? `INSERT INTO modules (module, npm_latest, npm_info, repository_host, repository_org, repository_repo, repository_type, repository_url) 
                                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-                            : `UPDATE module 
+                            : `UPDATE modules 
                                 SET npm_latest = $2, npm_info = $3, repository_host = $4, repository_org =$5 , repository_repo =$6 , repository_type = $7, repository_url = $8
                                 WHERE module = $1`, 
                         [ module.module, latest, info, repository_host, repository_org, repository_repo, repository_type, repository_url]

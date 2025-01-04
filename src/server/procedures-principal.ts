@@ -4,6 +4,19 @@ import { ProcedureDef, ProcedureContext, RepoPk } from './types-principal'
 
 import { promises as fs} from 'fs';
 
+
+export async function importNodefetch(){
+    return await import('node-fetch');
+}
+
+type NodeFetchType = Awaited<ReturnType<typeof importNodefetch>>;
+
+var nodeFetch: NodeFetchType["default"]
+
+setImmediate(async function(){
+    nodeFetch = (await importNodefetch()).default;
+})
+
 export const ProceduresPrincipal:ProcedureDef[] = [
     {
         action: 'repo_download',
@@ -61,7 +74,6 @@ export const ProceduresPrincipal:ProcedureDef[] = [
         action: 'repos_list',
         parameters: [
             {name: 'host', typeName:'text', defaultValue:'github.com', references:'hosts'},
-            {name: 'org' , typeName:'text', references:'orgs'},
         ],
         progress:true,
         coreFunction: async function coreFunction(context: ProcedureContext, parameters:RepoPk) {
@@ -69,33 +81,23 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             if (parameters.host != 'github.com') {
                 throw new Error('not implemented')
             }
-            const {Octokit} = await import("@octokit/rest");
-            const octokit = new Octokit({
-                auth: be.config.gitvillance["github-tokens"]?.[parameters.org] ?? be.config.gitvillance["github-token"],
-                userAgent: `gitvillance v${be.config.package.version}`
-            });
+            const headers = {
+                Authorization: 'token ' + (be.config.gitvillance["github-token"]),
+                "User-Agent": `gitvillance v${be.config.package.version}`
+            };
             var loaded = 0;
             var ref = {total:0};
             var toAwaitAllTogether:Promise<any>[] = []
-            var {row:{is_user}} = await context.client.query(
-                `select is_user from orgs where host = $1 and org = $2`,
-                [parameters.host, parameters.org]
-            ).fetchUniqueRow()
             context.informProgress({idGroup:"fetching", message:'fetching', loaded:0, lengthComputable:true, total:1});
             do { 
                 loaded++
             } while(await (async function(loaded:number, ref:{total:number}){
-                var {data, ...result} = is_user ? await octokit.rest.repos.listForUser({
-                    username: parameters.org,
-                    page: loaded
-                }) : await octokit.rest.repos.listForOrg({
-                    org: parameters.org,
-                    page: loaded
-                });
-                console.log('****************** FETCH LIST', parameters.org, loaded)
+                var response = await nodeFetch('https://api.github.com/user/repos?page='+loaded, {headers});
+                var data = await response.json() as any[]
+                console.log('****************** FETCH LIST', parameters.host, loaded)
                 await fs.writeFile('local-git-data-dump',JSON.stringify(data),'utf8')
                 if (!ref.total) {
-                    ref.total = Number(result?.headers?.link?.match(/page=(\d+)>; rel="last"/)?.[1]) ?? loaded;
+                    ref.total = Number(response?.headers.get("Link")?.match(/page=(\d+)>; rel="last"/)?.[1]) ?? loaded;
                     context.informProgress({idGroup:"saving", message:"saving", loaded: 0, lengthComputable:true, total: ref.total});
                 }
                 context.informProgress({idGroup:"fetching", loaded, lengthComputable:true, total: ref.total});
@@ -106,9 +108,8 @@ export const ProceduresPrincipal:ProcedureDef[] = [
                             await client.query(`
                                 MERGE INTO repos_vault t
                                     USING (
-                                            SELECT o.*, x->>'name' as "name", x as "info"
-                                                FROM orgs o CROSS JOIN json_array_elements($3) as x
-                                                WHERE o.host = $1 AND o.org = $2
+                                            SELECT $1 as host, split_part(x->>'full_name','/',1) as org, x->>'name' as "name", x as "info"
+                                                FROM json_array_elements($2) as x
                                         ) s
                                         ON s.host = t.host AND s.org = t.org AND s.name = t.repo
                                     WHEN MATCHED THEN
@@ -116,13 +117,13 @@ export const ProceduresPrincipal:ProcedureDef[] = [
                                     WHEN NOT MATCHED THEN
                                         INSERT     (  host,   org,   repo, info_repo)
                                             VALUES (s.host, s.org, s.name, s.info)
-                            `, [parameters.host, parameters.org, JSON.stringify(data)]).execute();
+                            `, [parameters.host, JSON.stringify(data)]).execute();
                             context.informProgress({idGroup:"saving", loaded, lengthComputable:true, total: ref.total});
                             context.informProgress({message:"saving "+loaded});
                         })
                     )
                 }
-                return data?.length == 30 && result.status == 200;
+                return data?.length == 30 && response.status == 200;
             })(loaded, ref));
             context.informProgress({message:"waiting for saving"});
             await Promise.all(toAwaitAllTogether);
