@@ -298,7 +298,6 @@ export class AppPrincipal extends AppBackend{
                 if (mustRetryNpm) {
                     const npmUrl = new URL(module.module, 'https://registry.npmjs.org/');
                     const request = await fetch(npmUrl);
-                    console.log('ACA 1', module);
                     const info = guarantee(
                         is.optional.object({
                             "dist-tags": is.optional.object({latest:is.string}),
@@ -316,12 +315,10 @@ export class AppPrincipal extends AppBackend{
                     var repository_repo:string|undefined
                     await fs.writeFile('local-log-info.json', JSON.stringify(info), 'utf8');
                     if (repository_url) {
-                        console.log('ACA 2',repository_type, repository_url, repository_url.replace(/^git\+/,''));
                         const repoUrl = repository_url ? new URL(repository_url.replace(/^git\+/,'')) : null;
                         repository_host = repoUrl?.hostname
                         repository_org = repoUrl?.pathname.split('/')[1]
                         repository_repo = repoUrl?.pathname.split('/')[2]?.replace(/\.git$/,'');
-                        console.log('ACA 3',repository_host, repository_org, repository_repo);
                     }
                     await be.inTransaction(null, client => client.query(
                         module.must_insert 

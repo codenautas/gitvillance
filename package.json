@@ -1,6 +1,6 @@
 {
   "name": "gitvillance",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "MIT",
   "description": "Puntapié inicial para hacer una aplicación en backend-plus desde cero",
   "main": "dist/server/server-principal.js",
@@ -10,7 +10,6 @@
     "install"
   ],
   "dependencies": {
-    "@octokit/rest": "21.0.2",
     "backend-plus": "^2.1.2",
     "guarantee-type": "0.2.2",
     "node-fetch": "^3.3.2",

@@ -221,11 +221,22 @@ For installation on a server, the service or cron must be scheduled.
 
 # Operación manual
 
-
+En la opción de menú `manual update` se encuentran los dos procesos que revisan los repositorios externos.
+   * `repository sync` se encarga de hacer `git clone` o `git pull`, luego parsear el `package.json` 
+   y finalmente traer información de `npmjs.org` (por ejemplo cuál es la última versión publicada)
+   * `repo list` revisa los respositorios del usuario y de las organizaciones a las que tiene acceso
+   para encontrar nuevos repositorios. Para que esos nuevos respositorios entren en el proximo `respository sync`
+   tienen que tener la columna `guard` en `true`.
 
 <!--lang:en--]
 
 # Manual usage
+
+In the `manual update` menu option you will find the two processes that check the external repositories.
+   * `repository sync` is in charge of doing `git clone` or `git pull`, then parsing the `package.json` 
+   and finally fetching information from `npmjs.org` (for example, what is the latest published version).
+   * `repo list` checks the repositories of the user and the organizations to which they have access to find new repositories. 
+   In order for these new repositories to enter the next `respository sync` they must have the `guard` column set to `true`.
 
 [!--lang:es-->
 

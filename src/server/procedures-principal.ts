@@ -2,9 +2,6 @@
 
 import { ProcedureDef, ProcedureContext, RepoPk } from './types-principal'
 
-import { promises as fs} from 'fs';
-
-
 export async function importNodefetch(){
     return await import('node-fetch');
 }
@@ -94,8 +91,6 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             } while(await (async function(loaded:number, ref:{total:number}){
                 var response = await nodeFetch('https://api.github.com/user/repos?page='+loaded, {headers});
                 var data = await response.json() as any[]
-                console.log('****************** FETCH LIST', parameters.host, loaded)
-                await fs.writeFile('local-git-data-dump',JSON.stringify(data),'utf8')
                 if (!ref.total) {
                     ref.total = Number(response?.headers.get("Link")?.match(/page=(\d+)>; rel="last"/)?.[1]) ?? loaded;
                     context.informProgress({idGroup:"saving", message:"saving", loaded: 0, lengthComputable:true, total: ref.total});

@@ -110,6 +110,12 @@ For installation on a server, the service or cron must be scheduled.
 
 # Manual usage
 
+In the `manual update` menu option you will find the two processes that check the external repositories.
+   * `repository sync` is in charge of doing `git clone` or `git pull`, then parsing the `package.json`
+   and finally fetching information from `npmjs.org` (for example, what is the latest published version).
+   * `repo list` checks the repositories of the user and the organizations to which they have access to find new repositories.
+   In order for these new repositories to enter the next `respository sync` they must have the `guard` column set to `true`.
+
 
 
 
