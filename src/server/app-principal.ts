@@ -5,6 +5,8 @@ import { AppBackend, Context, Request,
     RepoPk
 } from "./types-principal";
 
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
 import { usuarios                } from './table-usuarios';
 import { hosts                   } from './table-hosts';
 import { orgs                    } from './table-orgs';
@@ -14,7 +16,7 @@ import { modules                 } from './table-modules';
 import { repo_modules            } from './table-repo_modules';
 
 import {staticConfigYaml} from './def-config';
-import { ProceduresPrincipal } from './procedures-principal';
+import { ProceduresPrincipal, nodeFetch } from './procedures-principal';
 
 import {promises as fs} from 'fs'
 import * as Path from 'path'
@@ -268,6 +270,9 @@ export class AppPrincipal extends AppBackend{
     }
     async npmUpdateFromRepo(repoPk:RepoPk){
         const be = this;
+        // @ts-expect-error
+        const proxyUrl: string | undefined = be.config.server.proxy;
+        const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
         const {arrayPk} = await be.repoKeys(repoPk);
         await be.inTransaction(null, async client => {
             const dependencies = guarantee(
@@ -297,7 +302,7 @@ export class AppPrincipal extends AppBackend{
                 }
                 if (mustRetryNpm) {
                     const npmUrl = new URL(module.module, 'https://registry.npmjs.org/');
-                    const request = await fetch(npmUrl);
+                    const request = await nodeFetch(npmUrl, {agent});
                     const info = guarantee(
                         is.optional.object({
                             "dist-tags": is.optional.object({latest:is.string}),

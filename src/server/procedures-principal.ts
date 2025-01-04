@@ -2,13 +2,15 @@
 
 import { ProcedureDef, ProcedureContext, RepoPk } from './types-principal'
 
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
 export async function importNodefetch(){
     return await import('node-fetch');
 }
 
 type NodeFetchType = Awaited<ReturnType<typeof importNodefetch>>;
 
-var nodeFetch: NodeFetchType["default"]
+export var nodeFetch: NodeFetchType["default"]
 
 setImmediate(async function(){
     nodeFetch = (await importNodefetch()).default;
@@ -78,6 +80,9 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             if (parameters.host != 'github.com') {
                 throw new Error('not implemented')
             }
+            // @ts-expect-error
+            const proxyUrl: string | undefined = be.config.server.proxy;
+            const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
             const headers = {
                 Authorization: 'token ' + (be.config.gitvillance["github-token"]),
                 "User-Agent": `gitvillance v${be.config.package.version}`
@@ -89,7 +94,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             do { 
                 loaded++
             } while(await (async function(loaded:number, ref:{total:number}){
-                var response = await nodeFetch('https://api.github.com/user/repos?page='+loaded, {headers});
+                var response = await nodeFetch('https://api.github.com/user/repos?page='+loaded, {headers, agent});
                 var data = await response.json() as any[]
                 if (!ref.total) {
                     ref.total = Number(response?.headers.get("Link")?.match(/page=(\d+)>; rel="last"/)?.[1]) ?? loaded;
