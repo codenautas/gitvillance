@@ -2,6 +2,8 @@
 
 import { ProcedureDef, ProcedureContext, RepoPk } from './types-principal'
 
+import { promises as fs} from 'fs';
+
 // import { Octokit } from "@octokit/rest";
 
 export const ProceduresPrincipal:ProcedureDef[] = [
@@ -92,6 +94,8 @@ export const ProceduresPrincipal:ProcedureDef[] = [
                     org: parameters.org,
                     page: loaded
                 });
+                console.log('****************** FETCH LIST', parameters.org, loaded)
+                await fs.writeFile('local-git-data-dump',JSON.stringify(data),'utf8')
                 if (!ref.total) {
                     ref.total = Number(result?.headers?.link?.match(/page=(\d+)>; rel="last"/)?.[1]) ?? loaded;
                     context.informProgress({idGroup:"saving", message:"saving", loaded: 0, lengthComputable:true, total: ref.total});
@@ -104,16 +108,16 @@ export const ProceduresPrincipal:ProcedureDef[] = [
                             await client.query(`
                                 MERGE INTO repos_vault t
                                     USING (
-                                            SELECT * 
-                                                FROM orgs o CROSS JOIN json_to_recordset($3) as x(name text, owner jsonb)
+                                            SELECT o.*, x->>'name' as "name", x as "info"
+                                                FROM orgs o CROSS JOIN json_array_elements($3) as x
                                                 WHERE o.host = $1 AND o.org = $2
                                         ) s
                                         ON s.host = t.host AND s.org = t.org AND s.name = t.repo
                                     WHEN MATCHED THEN
-                                        UPDATE SET info_repo = s.owner
+                                        UPDATE SET info_repo = s.info
                                     WHEN NOT MATCHED THEN
                                         INSERT     (  host,   org,   repo, info_repo)
-                                            VALUES (s.host, s.org, s.name, s.owner)
+                                            VALUES (s.host, s.org, s.name, s.info)
                             `, [parameters.host, parameters.org, JSON.stringify(data)]).execute();
                             context.informProgress({idGroup:"saving", loaded, lengthComputable:true, total: ref.total});
                             context.informProgress({message:"saving "+loaded});
