@@ -4,8 +4,6 @@ import { ProcedureDef, ProcedureContext, RepoPk } from './types-principal'
 
 import { promises as fs} from 'fs';
 
-// import { Octokit } from "@octokit/rest";
-
 export const ProceduresPrincipal:ProcedureDef[] = [
     {
         action: 'repo_download',
@@ -73,7 +71,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             }
             const {Octokit} = await import("@octokit/rest");
             const octokit = new Octokit({
-                auth: be.config.gitvillance["github-token"],
+                auth: be.config.gitvillance["github-tokens"]?.[parameters.org] ?? be.config.gitvillance["github-token"],
                 userAgent: `gitvillance v${be.config.package.version}`
             });
             var loaded = 0;
