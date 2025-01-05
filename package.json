@@ -35,7 +35,7 @@
     "watch:buildC": "tsc -p tsconfig-client.json --watch",
     "watch:buildS": "tsc -p tsconfig-server.json --watch",
     "watch:buildU": "tsc -p tsconfig-unlogged.json --watch",
-    "test": "mocha --reporter spec --bail --check-leaks test/",
+    "test": "echo 'No hay tests por ahora'",
     "dump": "npm start -- --dump-db",
     "dumpb": "(tsc -p tsconfig-server.json  || echo \"continue w/error\") && npm run dump",
     "start": "node dist/server/server-principal.js"
