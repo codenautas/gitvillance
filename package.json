@@ -29,7 +29,7 @@
     "patch": false
   },
   "scripts": {
-    "prepare": "tsc -p tsconfig-client.json && tsc -p tsconfig-server.json && tsc -p tsconfig-unlogged.json && mixin-patch",
+    "build": "tsc -p tsconfig-client.json && tsc -p tsconfig-server.json && tsc -p tsconfig-unlogged.json && mixin-patch",
     "build-ignore-error": "(tsc -p tsconfig-client.json || echo \"continue w/error\") && (tsc -p tsconfig-server.json  || echo \"continue w/error\") && (tsc -p tsconfig-unlogged.json || echo \"continue w/error\") && mixin-patch",
     "build-cli": "(tsc -p tsconfig-client.json || echo \"continue w/error\") && (tsc -p tsconfig-unlogged.json || echo \"continue w/error\") && mixin-patch",
     "watch:buildC": "tsc -p tsconfig-client.json --watch",
@@ -38,6 +38,9 @@
     "test": "echo 'No hay tests por ahora'",
     "dump": "npm start -- --dump-db",
     "dumpb": "(tsc -p tsconfig-server.json  || echo \"continue w/error\") && npm run dump",
+    "preversion": "npm test",
+    "version": "npm run build",
+    "postversion": "git push && git push --tags",
     "start": "node dist/server/server-principal.js"
   }
 }
