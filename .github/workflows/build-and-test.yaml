@@ -7,7 +7,5 @@ on:
     branches: [ master, main ]
 
 jobs:
-  build:
-    steps:
-    - uses: codenautas/node-build-and-test-action@v0
-      secrets: inherit
+  call-workflow:
+    uses: codenautas/.github/.github/workflows/build-and-test.yaml@v0
