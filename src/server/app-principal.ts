@@ -181,7 +181,11 @@ export class AppPrincipal extends AppBackend{
         var {path, url} = await be.repoKeys(repoPk);
         // @ts-expect-error
         var proxy:string | null = be.config.server.proxy
-        const opts = proxy ? { config: [`http.proxy=${proxy}`] }: {}
+        const username = be.config.gitvillance[`${url.hostname}-username`]
+        const gitConfig:string[] = []
+        if (proxy) gitConfig.push(`http.proxy=${proxy}`)
+        if (username) gitConfig.push(`credential.${url.protocol}//${url.hostname}.username=${username}`)
+        const opts = gitConfig.length ? { config: gitConfig } : {}
         await be.updateRepoFetchingInfo(repoPk, {fetching: bestGlobals.datetime.now(), fetch_result:null})
         try {
             var result:string|undefined;

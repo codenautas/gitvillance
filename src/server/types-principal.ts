@@ -31,6 +31,7 @@ declare module "backend-plus"{
             "local-repo": string
             "github-token"?: string
             "github-tokens"?: Record<string, string>
+            [hostUsername: `${string}-username`]: string | undefined
         }
     }
 }

@@ -24,3 +24,6 @@ log:
 gitvillance:
   local-repo: ../local-repo-gitvillance
   github-token: github_pat_readonly-token_from https://github.com/settings/tokens?type=beta    
+  # usuario de git por defecto por host (clave <hostname>-username), para que el credential manager no pregunte cual cuenta usar
+  # github.com-username: mi-usuario-github
+  # gitlab.com-username: mi-usuario-gitlab
