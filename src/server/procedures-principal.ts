@@ -41,7 +41,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
                 context.informProgress({message: 'Retrying...'})
                 await context.client.query(`
                     update repos_vault
-	                    set fetching = null 
+	                    set fetching = null
 	                    where fetched is null and fetching is not null;
                 `).execute();
             }
@@ -91,7 +91,7 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             var ref = {total:0};
             var toAwaitAllTogether:Promise<any>[] = []
             context.informProgress({idGroup:"fetching", message:'fetching', loaded:0, lengthComputable:true, total:1});
-            do { 
+            do {
                 loaded++
             } while(await (async function(loaded:number, ref:{total:number}){
                 var response = await nodeFetch('https://api.github.com/user/repos?page='+loaded, {headers, agent});

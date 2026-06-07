@@ -44,15 +44,15 @@ export function reposSource(params:{main?:boolean, vault?:boolean, editable?:boo
         sql: {
             isTable:true,
             from:`(SELECT ${fields.map(({name, typeName, serverSide})=>{
-                    if (serverSide) {   
-                        return `(info_repo ->> ${quoteLiteral(name)})::${typeName} as ${quoteIdent(name)}` 
+                    if (serverSide) {
+                        return `(info_repo ->> ${quoteLiteral(name)})::${typeName} as ${quoteIdent(name)}`
                     } else {
                         return name
                     }
                 }).join(', ')}
                 FROM repos r RIGHT JOIN repos_vault v USING (host, org, repo)
                 ORDER BY host, org, repo
-            )`,            
+            )`,
             otherTableDefs:{
                 repos:{
                     sql:{

@@ -31,7 +31,7 @@ también disponible en:
 [!--lang:es-->
 
    1. Tener sincronizado el código fuente.
-   2. Extraer la información de dependencias entre módulos propios y de terceros. 
+   2. Extraer la información de dependencias entre módulos propios y de terceros.
 
 <!--lang:en--]
 
@@ -57,7 +57,7 @@ En este sistema vamos a llamar:
       1. ***download***, *clone* o *pull* del código fuente
       2. ***repo parse***, revisa el archivo `package.json` buscando módulos y versiones actualizando la tabla `repo_modules` (también actualizar `repos_vault` que contiene la información de los repositorios sincronizados; `repos` es la tabla de los repositorios de interés)
       3. ***npm update***, baja la información de `npm` y actualiza la tabla `modules`
-      4. ***auto add***, agregar en la tabla `repos_vault` repositorios que han sido vistos al revisar los módulos, corresponden a los *orgs* registrados y no figuraban previamente. 
+      4. ***auto add***, agregar en la tabla `repos_vault` repositorios que han sido vistos al revisar los módulos, corresponden a los *orgs* registrados y no figuraban previamente.
 
 <!--lang:en--]
 
@@ -70,7 +70,7 @@ In this system we will call:
       1. ***download***, *clone* or *pull* the source code
       2. ***repo parse***, checks the `package.json` file looking for modules and versions, updating the `repo_modules` table (also updates `repos_vault` which contains the information of the synchronized repositories; `repos` is the table of the repositories of interest)
       3. ***npm update***, downloads the information from `npm` and updates the `modules` table
-      4. ***auto add***, adds to the `repos_vault` table the repositories that have been seen when checking the modules, correspond to the registered *orgs* and were not previously listed.   
+      4. ***auto add***, adds to the `repos_vault` table the repositories that have been seen when checking the modules, correspond to the registered *orgs* and were not previously listed.
 
 [!--lang:*-->
 <!--lang:es-->
@@ -87,10 +87,10 @@ In this system we will call:
 # Prerrequisitos
 
 Tener instalado
-   1. Última versión LTS de Node.js 
+   1. Última versión LTS de Node.js
    2. ültima versión LTS de PostgreSQL
    3. GIT
-   4. Tener el PATH para poder usuarlos. 
+   4. Tener el PATH para poder usuarlos.
 
 <!--lang:en--]
 
@@ -106,12 +106,12 @@ Have installed
 
 ## Archivo de confguración
 
-Primero hay que crear el archivo de configuración de la aplicación `local-config.yaml`. 
-Para eso se puede copiar el archivo `example-local-config.yaml` y modificar la configuración. 
+Primero hay que crear el archivo de configuración de la aplicación `local-config.yaml`.
+Para eso se puede copiar el archivo `example-local-config.yaml` y modificar la configuración.
 
 <!--lang:en--]
 
-## Config File 
+## Config File
 
 First you need to create the application configuration file `local-config.yaml`.
 To do this you can copy the `example-local-config.yaml` file and modify the configuration.
@@ -135,7 +135,7 @@ install:
     drop-his: false
     db: # Parámetros para la creación de la base de datos durante la instalación (proceso manual)
       owner: gitvillance_owner
-client-setup: 
+client-setup:
   lang: es # idioma de la interface
 devel:
   delay: 0
@@ -167,7 +167,7 @@ install:
     drop-his: false
     db: # Parameters for creating the database during installation (manual process)
       owner: gitvillance_owner
-client-setup: 
+client-setup:
   lang: en # interface language
 devel:
   delay: 0
@@ -203,7 +203,7 @@ Downloading, compiling and creating the initial database
 
 <!--lang:es-->
 
-Arranque. 
+Arranque.
 ```sh
 > npm start
 ```
@@ -211,7 +211,7 @@ Para la instalación en un servidor debe programarse el servicio o el cron.
 
 <!--lang:en--]
 
-Starting 
+Starting
 ```sh
 > npm start
 ```
@@ -222,7 +222,7 @@ For installation on a server, the service or cron must be scheduled.
 # Operación manual
 
 En la opción de menú `manual update` se encuentran los dos procesos que revisan los repositorios externos.
-   * `repository sync` se encarga de hacer `git clone` o `git pull`, luego parsear el `package.json` 
+   * `repository sync` se encarga de hacer `git clone` o `git pull`, luego parsear el `package.json`
    y finalmente traer información de `npmjs.org` (por ejemplo cuál es la última versión publicada)
    * `repo list` revisa los respositorios del usuario y de las organizaciones a las que tiene acceso
    para encontrar nuevos repositorios. Para que esos nuevos respositorios entren en el proximo `respository sync`
@@ -233,9 +233,9 @@ En la opción de menú `manual update` se encuentran los dos procesos que revisa
 # Manual usage
 
 In the `manual update` menu option you will find the two processes that check the external repositories.
-   * `repository sync` is in charge of doing `git clone` or `git pull`, then parsing the `package.json` 
+   * `repository sync` is in charge of doing `git clone` or `git pull`, then parsing the `package.json`
    and finally fetching information from `npmjs.org` (for example, what is the latest published version).
-   * `repo list` checks the repositories of the user and the organizations to which they have access to find new repositories. 
+   * `repo list` checks the repositories of the user and the organizations to which they have access to find new repositories.
    In order for these new repositories to enter the next `respository sync` they must have the `guard` column set to `true`.
 
 [!--lang:es-->

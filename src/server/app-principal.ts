@@ -1,7 +1,7 @@
 "use strict";
 
-import { AppBackend, Context, Request, 
-    Client, ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase, 
+import { AppBackend, Context, Request,
+    Client, ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase,
     RepoPk
 } from "./types-principal";
 
@@ -67,7 +67,7 @@ export class AppPrincipal extends AppBackend{
     constructor(){
         super();
         new Promise(async ()=>{
-            return 
+            return
             // this.nodeFetch = (await importNodefetch()).default;
         })
     }
@@ -260,7 +260,7 @@ export class AppPrincipal extends AppBackend{
                 [...arrayPk, parsed, JSON.stringify(repoModulesData)]
             ).execute()
             await client.query(`
-                DELETE FROM repo_modules 
+                DELETE FROM repo_modules
                     WHERE host = $1 AND org = $2 AND repo = $3 AND parsed <> $4
                     `,
                 [...arrayPk, parsed]
@@ -291,11 +291,11 @@ export class AppPrincipal extends AppBackend{
                 }),
                 (await client.query(`
                     SELECT module, m.module is null must_insert, rm.version, m.npm_latest
-                        FROM repos_vault r 
+                        FROM repos_vault r
                             INNER JOIN repo_modules rm USING (host, org, repo, parsed)
                             LEFT JOIN modules m USING (module)
                         WHERE r.host = $1 AND r.org = $2 AND r.repo = $3
-                            AND rm.version IS DISTINCT FROM m.npm_latest 
+                            AND rm.version IS DISTINCT FROM m.npm_latest
                         LIMIT 4`,
                     [repoPk.host, repoPk.org, repoPk.repo]
                 ).fetchAll()).rows
@@ -333,12 +333,12 @@ export class AppPrincipal extends AppBackend{
                         repository_repo = repoUrl?.pathname.split('/')[2]?.replace(/\.git$/,'');
                     }
                     await be.inTransaction(null, client => client.query(
-                        module.must_insert 
-                            ? `INSERT INTO modules (module, npm_latest, npm_info, repository_host, repository_org, repository_repo, repository_type, repository_url) 
+                        module.must_insert
+                            ? `INSERT INTO modules (module, npm_latest, npm_info, repository_host, repository_org, repository_repo, repository_type, repository_url)
                                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-                            : `UPDATE modules 
+                            : `UPDATE modules
                                 SET npm_latest = $2, npm_info = $3, repository_host = $4, repository_org =$5 , repository_repo =$6 , repository_type = $7, repository_url = $8
-                                WHERE module = $1`, 
+                                WHERE module = $1`,
                         [ module.module, latest, info, repository_host, repository_org, repository_repo, repository_type, repository_url]
                     ).execute());
                 }
@@ -362,7 +362,7 @@ export class AppPrincipal extends AppBackend{
             }),
             (await context.client.query(opts.sql, opts.params).fetchAll()).rows
         );
-        var i = 0; 
+        var i = 0;
         for (var repoPk of pendings) {
             context.informProgress({message: opts.message + ' ' + likeAr(repoPk).array().join(','), lengthComputable:true, loaded:i++, total:pendings.length})
             await opts.do(repoPk);
@@ -412,7 +412,7 @@ export class AppPrincipal extends AppBackend{
         var result = await be.inTransaction(null, async client=>client.query(`
             INSERT INTO repos_vault (host, org, repo)
                 SELECT DISTINCT repository_host, repository_org, repository_repo
-                    FROM modules m 
+                    FROM modules m
                         INNER JOIN orgs o       ON repository_host = o.host    AND repository_org = o.org
                         LEFT JOIN repos_vault x ON repository_host = x.host    AND repository_org = x.org     AND repository_repo = x.repo
                     WHERE x.host IS NULL       AND repository_host IS NOT NULL AND repository_org IS NOT NULL AND repository_repo IS NOT NULL
@@ -434,7 +434,7 @@ export class AppPrincipal extends AppBackend{
             usuarios                ,
             hosts                   ,
             orgs                    ,
-            repos_vault             , 
+            repos_vault             ,
             repos                   ,
             modules                 ,
             repo_modules            ,

@@ -8,7 +8,7 @@ DROP COLLATION if exists semver_collate;
 
 CREATE COLLATION semver_collate (
   LOCALE = 'en-US-u-kn-true-ka-shifted-ks-level1-kv-symbol',
-  deterministic = false, 
+  deterministic = false,
   PROVIDER = icu
 );
 
@@ -22,5 +22,5 @@ SELECT o.host, o.org, m.module collate semver_collate
 
 /*
 SELECT module, npm_latest, npm_info, repository_host, repository_org, repository_repo, repository_type, repository_url
-	FROM gitvillance.modules;  
-*/    
+	FROM gitvillance.modules;
+*/

@@ -35,8 +35,8 @@ install:
       - ../node_modules/pg-triggers/lib/table-changes.sql
       post-adapt:
       - ../node_modules/pg-triggers/lib/function-changes-trg.sql
-      - ../node_modules/pg-triggers/lib/enance.sql    
-logo: 
+      - ../node_modules/pg-triggers/lib/enance.sql
+logo:
   path: client/img
 gitvillance:
   local-repo: ../local-repo-gitvillance

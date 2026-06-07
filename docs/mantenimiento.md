@@ -1,6 +1,6 @@
 # Mantenimiento de gitvillance y puntapie-ejemplo-noticias
 
-Cada tanto hay que actualizar las versiones y ver que todo compile bien. 
+Cada tanto hay que actualizar las versiones y ver que todo compile bien.
 Si se cambia gitvillance hay que avanzar la base en puntapie-ejemplo-noticias
 
 ## prueba del sistema de ejemplo
@@ -18,7 +18,7 @@ Sincronizar el fork.
 
 Luego
 
-``` 
+```
 ncu -u         # hay que tener instalado en npm-update-check
 npm install
 ```
@@ -32,7 +32,7 @@ hasta que no haya errores
 
 ### base de datos
 
-copiar el archivo `example-local-config.yaml` en `local-config.yaml` y cambiar si es necesario el puerto del postgres y las contraseñas. 
+copiar el archivo `example-local-config.yaml` en `local-config.yaml` y cambiar si es necesario el puerto del postgres y las contraseñas.
 
 Luego generar los archivos de creación de la base de datos y del esquema de tablas:
 
@@ -64,8 +64,8 @@ Y abrir el navegador en [http://localhost:3000/gitvillance](http://localhost:300
 
 ###
 
-El ejemplo corresponde a un portal de noticias breves y sus vínculos. 
+El ejemplo corresponde a un portal de noticias breves y sus vínculos.
 
-En el menú administrar se pueden agregar usuarios o administrar qué noticias se publican o no. 
+En el menú administrar se pueden agregar usuarios o administrar qué noticias se publican o no.
 
 Los usuario son los redactores `jimmy/olsen` y `lois/lane` y el jefe `perry/white`
