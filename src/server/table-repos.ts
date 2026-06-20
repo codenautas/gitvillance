@@ -15,6 +15,7 @@ export function reposSource(params:{main?:boolean, vault?:boolean, editable?:boo
     var fields = ([
             ...(reposPkFields.map(field=>({...field, table:'repos_vault'}))),
             {name:'guard'            , typeName:'boolean'  , inTable: params.main  , table: 'repos' },
+            {name:'grupo'            , typeName:'text'     , inTable: params.main  , table: 'repos' },
             {name:'visibility'       , typeName:'text'     , inTable: false        , editable:false , serverSide:true},
             {name:'private'          , typeName:'boolean'  , inTable: false        , editable:false , serverSide:true},
             {name:'description'      , typeName:'text'     , inTable: false        , editable:false , serverSide:true},

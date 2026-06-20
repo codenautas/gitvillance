@@ -18,7 +18,7 @@
   "dependencies": {
     "backend-plus": "^2.6.4",
     "guarantee-type": "0.2.12",
-    "https-proxy-agent": "^9.1.0",
+    "https-proxy-agent": "^5.0.1",
     "node-fetch": "^3.3.2",
     "pg-triggers": "^0.4.6",
     "semver": "^7.8.5",
@@ -27,7 +27,7 @@
   "devDependencies": {
     "@types/node": "^26.0.0",
     "@types/semver": "^7.7.1",
-    "typescript": "^6.0.3",
+    "typescript": "^5.9.3",
     "types.d.ts": "^0.6.22",
     "mixin-patch": "^0.5.0",
     "qa-control": "^0.6.13"

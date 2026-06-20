@@ -3,6 +3,7 @@
 import { ProcedureDef, ProcedureContext, RepoPk } from './types-principal'
 
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { Agent } from 'http';
 
 export async function importNodefetch(){
     return await import('node-fetch');
@@ -82,7 +83,8 @@ export const ProceduresPrincipal:ProcedureDef[] = [
             }
             // @ts-expect-error
             const proxyUrl: string | undefined = be.config.server.proxy;
-            const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+            // el agent de https-proxy-agent@5 es un http.Agent en runtime, pero su tipo (agent-base@6) no lo refleja
+            const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) as unknown as Agent : undefined;
             const headers = {
                 Authorization: 'token ' + (be.config.gitvillance["github-token"]),
                 "User-Agent": `gitvillance v${be.config.package.version}`

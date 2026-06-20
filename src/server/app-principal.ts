@@ -6,6 +6,7 @@ import { AppBackend, Context, Request,
 } from "./types-principal";
 
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { Agent } from 'http';
 
 import { usuarios                } from './table-usuarios';
 import { hosts                   } from './table-hosts';
@@ -279,7 +280,8 @@ export class AppPrincipal extends AppBackend{
         const be = this;
         // @ts-expect-error
         const proxyUrl: string | undefined = be.config.server.proxy;
-        const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+        // el agent de https-proxy-agent@5 es un http.Agent en runtime, pero su tipo (agent-base@6) no lo refleja
+        const agent = proxyUrl ? new HttpsProxyAgent(proxyUrl) as unknown as Agent : undefined;
         const {arrayPk} = await be.repoKeys(repoPk);
         await be.inTransaction(null, async client => {
             const dependencies = guarantee(
