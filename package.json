@@ -5,28 +5,41 @@
   "description": "Puntapié inicial para hacer una aplicación en backend-plus desde cero",
   "main": "dist/server/server-principal.js",
   "types": "dist/server/server-principal.d.ts",
+  "repository": "codenautas/gitvillance",
   "files": [
     "dist",
     "install"
   ],
+  "overrides": {
+    "diff": ">=8.0.2",
+    "serialize-javascript": ">=7.0.0",
+    "uuid": ">=14.0.0"
+  },
   "dependencies": {
-    "backend-plus": "^2.1.2",
-    "guarantee-type": "0.2.2",
-    "https-proxy-agent": "^7.0.6",
+    "backend-plus": "^2.6.4",
+    "guarantee-type": "0.2.12",
+    "https-proxy-agent": "^9.1.0",
     "node-fetch": "^3.3.2",
-    "pg-triggers": "^0.3.3",
-    "semver": "^7.6.3",
-    "simple-git": "^3.27.0"
+    "pg-triggers": "^0.4.6",
+    "semver": "^7.8.5",
+    "simple-git": "^3.36.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/semver": "^7.5.8",
-    "typescript": "^5.7.2",
+    "@types/node": "^26.0.0",
+    "@types/semver": "^7.7.1",
+    "typescript": "^6.0.3",
     "types.d.ts": "^0.6.22",
-    "mixin-patch": "^0.4.1"
+    "mixin-patch": "^0.5.0",
+    "qa-control": "^0.6.13"
   },
   "mixin-patch": {
     "patch": false
+  },
+  "qa-control": {
+    "profile": "minimum",
+    "run-in": "server",
+    "type": "app",
+    "gha": true
   },
   "scripts": {
     "build": "tsc -p tsconfig-client.json && tsc -p tsconfig-server.json && tsc -p tsconfig-unlogged.json && mixin-patch",
@@ -36,6 +49,7 @@
     "watch:buildS": "tsc -p tsconfig-server.json --watch",
     "watch:buildU": "tsc -p tsconfig-unlogged.json --watch",
     "test": "echo 'No hay tests por ahora'",
+    "test-ci": "npm test",
     "dump": "npm start -- --dump-db",
     "dumpb": "(tsc -p tsconfig-server.json  || echo \"continue w/error\") && npm run dump",
     "preversion": "npm test",
