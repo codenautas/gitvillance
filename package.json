@@ -20,6 +20,7 @@
     "guarantee-type": "0.2.12",
     "https-proxy-agent": "^5.0.1",
     "node-fetch": "^3.3.2",
+    "js-to-html": "^1.3.5",
     "pg-triggers": "^0.4.6",
     "semver": "^7.8.5",
     "simple-git": "^3.36.0"

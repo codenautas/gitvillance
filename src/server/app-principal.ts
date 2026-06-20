@@ -1,8 +1,8 @@
 "use strict";
 
-import { AppBackend, Context, Request,
+import { AppBackend, ExpressPlus, Context, Request,
     Client, ClientModuleDefinition, OptsClientPage, MenuDefinition, MenuInfoBase,
-    RepoPk
+    RepoPk, repoKeysFromRow
 } from "./types-principal";
 
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -29,6 +29,7 @@ import { guarantee, is, Description, DefinedType } from "guarantee-type";
 import * as bestGlobals from 'best-globals'
 import { ProcedureContext } from "backend-plus";
 import * as semver from "semver";
+import { cucardas_info, cucardasPage } from './cucardas-page';
 
 async function pathExists(path:string){
     try {
@@ -81,6 +82,25 @@ export class AppPrincipal extends AppBackend{
             ...await super.getProcedures(),
             ...ProceduresPrincipal
         ]
+    }
+    override addUnloggedServices(mainApp:ExpressPlus, baseUrl:string): void {
+        super.addUnloggedServices(mainApp, baseUrl);
+        var be = this;
+        mainApp.get(Path.posix.join(baseUrl,'cucardas'), async function(_req, res){ 
+            var result = await be.inDbClient(null, client=>
+                client.query(`
+                    SELECT repos.*, orgs.repo_path as org_repo_path, hosts.repo_path
+                        FROM repos 
+                            INNER JOIN orgs USING (host, org)
+                            INNER JOIN hosts USING (host)
+                        WHERE "group" is not null 
+                        ORDER BY "group", repo
+                `).fetchAll()
+            );
+            var rows = guarantee({array:(cucardas_info)}, result.rows)
+            var htmlContent = await cucardasPage(be.config.gitvillance["local-repo"], rows);
+            res.send(htmlContent)
+        });
     }
     override getMenu(context:Context):MenuDefinition{
         var menuContent:MenuInfoBase[]=[];
@@ -167,15 +187,17 @@ export class AppPrincipal extends AppBackend{
                 WHERE h.host = $1`
             , [host, org]
         ).fetchUniqueRow());
-        var {base_url} = guarantee(
+        var params = guarantee(
             is.object({
-                base_url: is.string
+                host: is.string,
+                org: is.string,
+                base_url: is.string,
+                repo_path: is.nullable.string,
+                org_repo_path: is.nullable.string
             }),
             row
         );
-        const url = new URL(Path.posix.join(org, repo), base_url)
-        const path = Path.join(be.config.gitvillance["local-repo"], row.repo_path ?? url.hostname, row.org_repo_path ?? org, repo)
-        return {base_url, url, path, arrayPk:[host, org, repo]};
+        return repoKeysFromRow(be.config.gitvillance["local-repo"], {...params, repo})
     }
     async repoDownload(repoPk:RepoPk){
         var be = this;
