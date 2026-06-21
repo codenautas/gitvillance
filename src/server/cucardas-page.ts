@@ -41,7 +41,7 @@ function extractCucardasSection(markdown:string){
 
 export async function cucardasPage(localRepo:string, infoRepos: DefinedType<typeof cucardas_info>[]){
     var md = new Remarkable();
-    var content = await Promise.all(infoRepos.map(async info => {
+    async function repoLine(info:DefinedType<typeof cucardas_info>){
         var {host, org, repo} = info;
         var {path} = repoKeysFromRow(localRepo, info);
         var markdown = await readFirstExisting(path, ['LEEME.md', 'README.md']);
@@ -50,11 +50,19 @@ export async function cucardasPage(localRepo:string, infoRepos: DefinedType<type
             html.a({class: 'repo-link', href: `https://${host}/${org}/${repo}`}, repo),
             html.span({class: 'temporary-dump'}, cucardas == null ? [] : [html.includeHtml(md.render(cucardas))])
         ]);
-    }))
-    var groupContent = [html.div([
-        html.div({class: 'group-title'}, 'BP'),
-        html.div({class: 'group-conent'}, content)
-    ])]
+    }
+    var groups = new Map<string, DefinedType<typeof cucardas_info>[]>();
+    for (var info of infoRepos) {
+        var list = groups.get(info.group);
+        if (list == null) { list = []; groups.set(info.group, list); }
+        list.push(info);
+    }
+    var groupContent = await Promise.all([...groups].map(async ([group, infos]) =>
+        html.div([
+            html.div({class: 'group-title'}, group),
+            html.div({class: 'group-conent'}, await Promise.all(infos.map(repoLine)))
+        ])
+    ))
     var title = 'QA-CONTROL - cucardas of main repos'
     var page = html.html([
         html.head([
