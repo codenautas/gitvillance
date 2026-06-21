@@ -89,7 +89,7 @@ export class AppPrincipal extends AppBackend{
         mainApp.get(Path.posix.join(baseUrl,'cucardas'), async function(_req, res){ 
             var result = await be.inDbClient(null, client=>
                 client.query(`
-                    SELECT repos.*, orgs.repo_path as org_repo_path, hosts.repo_path
+                    SELECT repos.*, orgs.repo_path as org_repo_path, hosts.repo_path, hosts.base_url
                         FROM repos 
                             INNER JOIN orgs USING (host, org)
                             INNER JOIN hosts USING (host)
