@@ -51,12 +51,7 @@ export async function cucardasPage(localRepo:string, infoRepos: DefinedType<type
             html.span({class: 'temporary-dump'}, cucardas == null ? [] : [html.includeHtml(md.render(cucardas))])
         ]);
     }
-    var groups = new Map<string, DefinedType<typeof cucardas_info>[]>();
-    for (var info of infoRepos) {
-        var list = groups.get(info.group);
-        if (list == null) { list = []; groups.set(info.group, list); }
-        list.push(info);
-    }
+    var groups = Map.groupBy(infoRepos, info => info.group);
     var groupContent = await Promise.all([...groups].map(async ([group, infos]) =>
         html.div([
             html.div({class: 'group-title'}, group),
