@@ -190,14 +190,14 @@ export class AppPrincipal extends AppBackend{
         var params = guarantee(
             is.object({
                 host: is.string,
-                org: is.string,
+                // org: is.string,
                 base_url: is.string,
                 repo_path: is.nullable.string,
                 org_repo_path: is.nullable.string
             }),
             row
         );
-        return repoKeysFromRow(be.config.gitvillance["local-repo"], {...params, repo})
+        return repoKeysFromRow(be.config.gitvillance["local-repo"], {...params, org, repo})
     }
     async repoDownload(repoPk:RepoPk){
         var be = this;
@@ -264,8 +264,7 @@ export class AppPrincipal extends AppBackend{
                         const infoDep = packageJson[section];
                         if (infoDep != null) {
                             var version = infoDep[module];
-                            // var version_lock = (packages.lock.packages as Record<string,string>)[`node_modules/${module}`];
-                            const version_lock = packages?.lock?.packages?.[`node_modules/${module}`].version ?? null;
+                            const version_lock = packages?.lock?.packages?.[`node_modules/${module}`]?.version ?? null;
                             repoModulesData.push({section, module, version, version_lock})
                         }
                     }
@@ -337,9 +336,9 @@ export class AppPrincipal extends AppBackend{
                     const info = guarantee(
                         is.optional.object({
                             "dist-tags": is.optional.object({latest:is.string}),
-                            versions: {recordString:{optional: is.object({
+                            versions: {optional: {recordString:{optional: is.object({
                                 repository: {optional: is.object({type:is.optional.string, url:is.optional.string})}
-                            })}}
+                            })}}}
                         }),
                         await request.json()
                     );
@@ -396,13 +395,12 @@ export class AppPrincipal extends AppBackend{
     }
     async reposDownload(context:ProcedureContext){
         var be = this;
-        var limit = bestGlobals.date.today().sub(bestGlobals.timeInterval.iso('1D'));
         return await be.pendingMachine(context, {
             sql:`SELECT host, org, repo
                 FROM repos r INNER JOIN repos_vault v USING (host, org, repo)
-                WHERE (fetching IS NULL OR fetching < $1) AND guard
+                WHERE (fetching IS NULL OR fetching < current_timestamp - '2hours'::interval) AND guard
                 ORDER BY repo`,
-            params:[limit],
+            params:[],
             message: 'REPO',
             do: repoPk => be.repoDownload(repoPk)
         });

@@ -48,7 +48,7 @@ export function reposSource(params:{main?:boolean, vault?:boolean, editable?:boo
                     if (serverSide) {
                         return `(info_repo ->> ${quoteLiteral(name)})::${typeName} as ${quoteIdent(name)}`
                     } else {
-                        return name
+                        return quoteIdent(name)
                     }
                 }).join(', ')}
                 FROM repos r RIGHT JOIN repos_vault v USING (host, org, repo)
